@@ -1,6 +1,6 @@
 from typing import Optional
 
-from ch_ast import (
+from chemistry_lang.ch_ast import (
     Assign,
     Binary,
     Call,
@@ -19,11 +19,11 @@ from ch_ast import (
     ExprStmt,
     Block,
 )
-from ch_error import CHError
-from ch_handler import handler
-from ch_objs import CHQuantity, CHString, FormulaUnit, Reaction
-from ch_token import Token, TokenType
-from ch_ureg import ureg
+from chemistry_lang.ch_error import CHError
+from chemistry_lang.ch_handler import handler
+from chemistry_lang.ch_objs import CHQuantity, CHString, FormulaUnit, Reaction
+from chemistry_lang.ch_token import Token, TokenType
+from chemistry_lang.ch_ureg import ureg
 
 
 class Parser:

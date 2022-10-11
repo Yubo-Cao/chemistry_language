@@ -1,6 +1,6 @@
 from typing import Any, cast
 
-from ch_handler import handler
+from chemistry_lang.ch_handler import handler
 
 
 class Env:

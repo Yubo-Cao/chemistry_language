@@ -1,4 +1,4 @@
-from ch_token import Token
+from chemistry_lang.ch_token import Token
 
 
 class CHError(Exception):

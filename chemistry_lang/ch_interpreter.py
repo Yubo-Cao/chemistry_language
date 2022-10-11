@@ -3,7 +3,7 @@ from decimal import Decimal
 from functools import singledispatchmethod
 from typing import Any, NoReturn
 
-from ch_ast import (
+from chemistry_lang.ch_ast import (
     Assign,
     Binary,
     During,
@@ -22,12 +22,12 @@ from ch_ast import (
     Block,
     Write,
 )
-from ch_env import Env
-from ch_error import CHError
-from ch_handler import handler
-from ch_objs import CHQuantity, CHString, Formula, FormulaUnit
-from ch_token import *
-from ch_work import CHWork, SubmitError, NativeWork
+from chemistry_lang.ch_env import Env
+from chemistry_lang.ch_error import CHError
+from chemistry_lang.ch_handler import handler
+from chemistry_lang.ch_objs import CHQuantity, CHString, Formula, FormulaUnit
+from chemistry_lang.ch_token import *
+from chemistry_lang.ch_work import CHWork, SubmitError, NativeWork
 
 
 class Interpreter:

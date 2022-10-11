@@ -1,8 +1,8 @@
 import json
 from decimal import Decimal
 
-from ch_base import shared_lazy_loading
-from ch_handler import handler
+from chemistry_lang.ch_base import shared_lazy_loading
+from chemistry_lang.ch_handler import handler
 
 
 class PeriodicTable:

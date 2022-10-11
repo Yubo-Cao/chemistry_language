@@ -1,39 +1,38 @@
 import sys
-from logging import DEBUG, FileHandler, Logger, StreamHandler
-from typing import Any
+from logging import DEBUG, FileHandler, getLogger, StreamHandler
+from typing import Optional
 
 from colorama import Fore
 
-from ch_error import CHError
-from ch_token import Token
+from chemistry_lang.ch_error import CHError
+from chemistry_lang.ch_token import Token
 
 
 class ErrorStream:
     def write(self, msg: str) -> None:
         sys.stderr.write(Fore.RED + msg + Fore.RESET)
 
+logger = getLogger("Chemistry Helper")
+logger.addHandler(FileHandler("chem.log"))
+logger.addHandler(StreamHandler(ErrorStream()))
+logger.setLevel(DEBUG)
 
 class CHErrorHandler:
-    logger = Logger("Chemistry Helper")
-    logger.addHandler(FileHandler("chem.log"))
-    logger.addHandler(StreamHandler(ErrorStream()))
-    logger.setLevel(DEBUG)
     had_error = False
 
     def __init__(self):
         self.had_error = False
 
-    def error(self, msg: str, token: Any = None):
-        if token is None:
-            self.logger.error(msg)
-            self.had_error = True
-        elif isinstance(token, Token):
-            self.logger.error(f"{token.line}: {msg}")
-            self.had_error = True
-        elif isinstance(token, int):
-            # line number
-            self.logger.error(f"{token}: {msg}")
-            self.had_error = True
+    def error(self, msg: str, token: Optional[Token | int] = None):
+        """Report an error"""
+        
+        match token:
+            case Token():
+                msg = f'{token.line}: {msg}'
+            case int():
+                msg = f'{token}: {msg}'
+        logger.error(msg)
+        self.had_error = True
         return CHError(msg)
 
 

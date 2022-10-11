@@ -4,13 +4,13 @@ from itertools import groupby
 from pathlib import Path
 from typing import Any, Callable, Literal, cast, Optional
 
-from ch_base import shared_lazy_loading
-from ch_error import CHError
-from ch_handler import handler
-from ch_objs import Element, SubFormula, Formula
-from ch_periodic_table import periodic_table
-from ch_token import Token, TokenType
-from ch_ureg import ureg
+from chemistry_lang.ch_base import shared_lazy_loading
+from chemistry_lang.ch_error import CHError
+from chemistry_lang.ch_handler import handler
+from chemistry_lang.ch_objs import Element, SubFormula, Formula
+from chemistry_lang.ch_periodic_table import periodic_table
+from chemistry_lang.ch_token import Token, TokenType
+from chemistry_lang.ch_ureg import ureg
 
 
 class Scanner:

@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from ch_handler import handler
+from chemistry_lang.ch_handler import handler
 
 
 class CHNumber:

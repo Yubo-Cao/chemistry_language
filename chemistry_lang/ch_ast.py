@@ -4,8 +4,8 @@ from typing import Any, NamedTuple
 
 from pint import Unit
 
-from ch_objs import FormulaUnit, Reaction
-from ch_token import Token, TokenType
+from chemistry_lang.ch_objs import FormulaUnit, Reaction
+from chemistry_lang.ch_token import Token, TokenType
 
 
 class Expr:

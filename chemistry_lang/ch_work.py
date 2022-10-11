@@ -1,5 +1,5 @@
-from ch_ast import Work
-from ch_env import Env
+from chemistry_lang.ch_ast import Work
+from chemistry_lang.ch_env import Env
 
 
 class SubmitError(Exception):

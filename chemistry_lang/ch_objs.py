@@ -8,11 +8,11 @@ from typing import Callable, Any, Iterable
 from pint import DimensionalityError, Quantity, Unit, Context
 from sympy import Integer, symbols, solve_linear_system, Matrix, fraction
 
-from ch_base import lazy_loading
-from ch_handler import handler
-from ch_periodic_table import periodic_table
-from ch_token import Token
-from ch_ureg import ureg
+from chemistry_lang.ch_base import lazy_loading
+from chemistry_lang.ch_handler import handler
+from chemistry_lang.ch_periodic_table import periodic_table
+from chemistry_lang.ch_token import Token
+from chemistry_lang.ch_ureg import ureg
 
 getcontext().rounding = ROUND_HALF_UP
 
@@ -35,7 +35,7 @@ class CHString:
         return self.string if not self.need_substitute else self.substituted()
 
     def substituted(self):
-        # Hack: avoid circular import
+        # avoid circular import
         from main import ch
         from ch_interpreter import Interpreter
 

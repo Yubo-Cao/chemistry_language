@@ -1,12 +1,12 @@
 import sys
 from typing import Any
 
-from ch_base import shared_lazy_loading
-from ch_error import CHError
-from ch_handler import handler
-from ch_interpreter import Interpreter
-from ch_parser import Parser
-from ch_scanner import Scanner
+from chemistry_lang.ch_base import shared_lazy_loading
+from chemistry_lang.ch_error import CHError
+from chemistry_lang.ch_handler import handler
+from chemistry_lang.ch_interpreter import Interpreter
+from chemistry_lang.ch_parser import Parser
+from chemistry_lang.ch_scanner import Scanner
 
 
 class CH:
@@ -14,7 +14,7 @@ class CH:
     def interpreter(self) -> Interpreter:
         return Interpreter()
 
-    def main(self):
+    def main(self) -> None:
         args = sys.argv[1:]
         if len(args) == 1:
             try:
@@ -25,7 +25,7 @@ class CH:
         else:
             self.repl()
 
-    def run(self, code):
+    def run(self, code: str):
         try:
             scanner = Scanner(code)
             tokens = scanner.scan_tokens()
@@ -56,20 +56,17 @@ class CH:
 
     def repl(self):
         print("""
-Welcome to the Chemistry Helper! 
+Welcome to the Chemistry Language! 
 Type in your code
     - Ctrl+Z + Enter to execute.
     - Enter, nothing will happen but a newline will be added.
     - Ctrl+C, the program will exit.
-Complete syntax reference can be found at readme.md (but its totally gibberish with
-EBNF notation) See demo.ch for an example.
+Complete syntax reference can be found at readme.md
               """)
         while True:
             try:
                 code = []
                 while True:
-                    # This is some hack to get multi line input. You have to terminate
-                    # it manually
                     try:
                         code.append(input(">>> "))
                     except EOFError:
