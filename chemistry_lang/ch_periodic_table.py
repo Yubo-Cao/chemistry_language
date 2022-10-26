@@ -1,7 +1,7 @@
 import json
 from decimal import Decimal
+from functools import cached_property
 
-from chemistry_lang.ch_base import shared_lazy_loading
 from chemistry_lang.ch_handler import handler
 
 
@@ -13,7 +13,7 @@ class PeriodicTable:
             msg = f"Element '{symbol}' has no '{key}'"
             raise handler.error(msg)
 
-    @shared_lazy_loading
+    @cached_property
     def periodic_table(self) -> dict:
         try:
             with open("periodic_table.json") as f:

@@ -1,5 +1,7 @@
+import itertools
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation, getcontext
+from functools import cached_property
 from itertools import chain, permutations
 from math import lcm
 from operator import add, mod, mul, truediv
@@ -8,7 +10,6 @@ from typing import Callable, Any, Iterable
 from pint import DimensionalityError, Quantity, Unit, Context
 from sympy import Integer, symbols, solve_linear_system, Matrix, fraction
 
-from chemistry_lang.ch_base import lazy_loading
 from chemistry_lang.ch_handler import handler
 from chemistry_lang.ch_periodic_table import periodic_table
 from chemistry_lang.ch_token import Token
@@ -28,32 +29,31 @@ class CHString:
 
     def __repr__(self):
         return (
-            "<CHString " + ("s'" if self.need_substitute else "'") + self.string + "'>"
+                "<CHString " + ("s'" if self.need_substitute else "'") + self.string + "'>"
         )
 
     def __str__(self):
         return self.string if not self.need_substitute else self.substituted()
 
     def substituted(self):
-        # avoid circular import
         from main import ch
-        from ch_interpreter import Interpreter
+        from ch_interpreter import interpreter
 
         if self.need_substitute:
             results = [
-                Interpreter.stringify(ch.eval(self.string[sub[0] : sub[1]]))
+                interpreter.stringify(ch.evaluate(self.string[sub[0]: sub[1]]))
                 for sub in self.extract_subs
             ]
             ret = self.string
             offset = 0
             for sub, res in zip(self.extract_subs, results):
-                ret = ret[: sub[0] + offset - 1] + res + ret[sub[1] + offset + 1 :]
+                ret = ret[: sub[0] + offset - 1] + res + ret[sub[1] + offset + 1:]
                 offset += len(res) - (sub[1] - sub[0] + 2)
             return ret.replace(r"\}", "}").replace(r"\{", "{")
         else:
             return self.string
 
-    @lazy_loading
+    @cached_property
     def extract_subs(self) -> list[tuple[int, int]]:
         stack: list[tuple[str, int]] = []
         to_be_substituted: list[tuple[int, int]] = []
@@ -111,7 +111,9 @@ class CHQuantity:
         )
 
     def binary_operation(
-        self, other, operator: Callable[[Quantity, Quantity], Quantity]
+            self,
+            other,
+            operator: Callable[[Quantity | Decimal, Quantity | Decimal], Quantity],
     ) -> tuple[Unit, Decimal]:
         try:
             if isinstance(other, CHQuantity):
@@ -119,11 +121,13 @@ class CHQuantity:
             elif isinstance(other, Quantity):
                 res = operator(self.unit * self.magnitude, other)
             elif (
-                isinstance(other, int)
-                or isinstance(other, float)
-                or isinstance(other, Decimal)
+                    isinstance(other, int)
+                    or isinstance(other, float)
+                    or isinstance(other, Decimal)
             ):
                 res = operator(self.magnitude, other) * self.unit
+            else:
+                raise TypeError(f"Cannot perform operation with {type(other)}")
             unit = res.units
             magnitude = res.magnitude
         except DimensionalityError:
@@ -183,7 +187,7 @@ class CHQuantity:
     def __pow__(self, other):
         unit, mag = self.binary_operation(other, pow)
         return CHQuantity(
-            self.formula**other.formula
+            self.formula ** other.formula
             if isinstance(other, CHQuantity)
             else self.formula,
             mag,
@@ -271,7 +275,7 @@ class CHQuantity:
         return self.magnitude * self.unit
 
 
-class EvaluatableDecimal:
+class EvalDecimal:
     def __init__(self, name):
         self.name = name
 
@@ -281,7 +285,8 @@ class EvaluatableDecimal:
         prop = getattr(instance, self.name)
         if isinstance(prop, str):
             from main import ch
-            prop = ch.eval(prop)
+
+            prop = ch.evaluate(prop)
         return self.__check_type(prop)
 
     def __set__(self, instance, value):
@@ -307,8 +312,8 @@ class EvaluatableDecimal:
 
 class Element:
     symbol: str
-    number: Decimal = EvaluatableDecimal("number")
-    charge: Decimal = EvaluatableDecimal("charge")
+    number: Decimal = EvalDecimal("number")
+    charge: Decimal = EvalDecimal("charge")
 
     def __init__(self, symbol, number=Decimal(1), charge=Decimal(0)):
         self.symbol = symbol
@@ -317,16 +322,18 @@ class Element:
 
     def __eq__(self, other):
         return (
-            self.symbol == other.symbol
-            and self.number == other.number
-            and self.charge == other.charge
+                self.symbol == other.symbol
+                and self.number == other.number
+                and self.charge == other.charge
         )
 
     def __hash__(self):
         return hash((self.symbol, self.number, self.charge))
 
     def __str__(self):
-        return f"{self.symbol}{'_{%s}' % self.number if self.number != 1 else ''}{'^{%s}' % str(self.charge) if self.charge else ''}"
+        sub = '_{%s}' % self.number if self.number != 1 else ''
+        sup = '^{%s}' % self.charge if self.charge != 0 else ''
+        return f"{self.symbol}{sub}{sup}"
 
     def __getattr__(self, item):
         try:
@@ -335,54 +342,10 @@ class Element:
             raise AttributeError("'Element' object has no attribute '%s'" % item)
 
 
-class SubFormula:
-    # Formula | SubFormula
-    terms: tuple[Any, ...]
-    number = EvaluatableDecimal("number")
-    charge = EvaluatableDecimal("charge")
-
-    def __init__(self, terms: tuple[Any, ...], number=Decimal(1), charge=Decimal(0)):
-        self.terms = terms
-        self.number = number
-        self.charge = charge
-
-    def __str__(self):
-        return (
-            ("(%s)" if self.number != 0 else "%s") % "".join(str(e) for e in self.terms)
-            + ("_{%s}" % self.number if self.number != 1 else "")
-            + ("^{%s}" % self.charge if self.charge else "")
-        )
-
-    def __hash__(self) -> int:
-        return hash((self.terms, self.number, self.charge))
-
-    def __eq__(self, other: Any) -> bool:
-        return (
-            isinstance(other, SubFormula)
-            and self.terms == other.terms
-            and self.number == other.number
-            and self.charge == other.charge
-        )
-
-    @lazy_loading
-    def count_dict(self):
-        """
-        Return a dictionary of element symbol and count.
-        """
-        result = {}
-        for term in self.terms:
-            if isinstance(term, Element):
-                result[term.symbol] = result.get(term.symbol, 0) + term.number
-            elif isinstance(term, SubFormula):
-                for symbol, count in term.count_dict.items():
-                    result[symbol] = result.get(symbol, 0) + count * term.number
-        return result
-
-
-class Formula:
-    terms: tuple[Element | SubFormula, ...]
-    number = EvaluatableDecimal("number")
-    charge = EvaluatableDecimal("charge")
+class CHFormula:
+    terms: tuple[Element, ...]
+    number = EvalDecimal("number")
+    charge = EvalDecimal("charge")
 
     def __init__(self, terms, number=Decimal(1), charge=Decimal(0)):
         self.terms = tuple(terms)
@@ -391,32 +354,31 @@ class Formula:
 
     def __str__(self) -> str:
         return (
-            (str(self.number) if self.number != 1 else "")
-            + "".join(map(str, self.terms))
-            + ("^{%d}" % self.charge if self.charge else "")
+                (str(self.number) if self.number != 1 else "")
+                + "".join(map(str, self.terms))
+                + ("^{%d}" % self.charge if self.charge else "")
         )
 
-    @lazy_loading
+    @cached_property
     def count_dict(self):
         """
         Return a dictionary of element symbol and count.
         """
+
         result = {}
         for term in self.terms:
             if isinstance(term, Element):
                 result[term.symbol] = result.get(term.symbol, 0) + term.number
-            elif isinstance(term, SubFormula):
+            elif isinstance(term, CHFormula):
                 for symbol, count in term.count_dict.items():
                     result[symbol] = result.get(symbol, 0) + count * term.number
         return result
 
-    @lazy_loading
+    @cached_property
     def molecular_mass(self):
         """
         Return the molecular mass of the formula.
         """
-        from ch_objs import CHQuantity
-
         return CHQuantity(
             FormulaUnit([self]),
             sum(
@@ -426,17 +388,17 @@ class Formula:
             ureg.gram / ureg.mol,
         )
 
-    @lazy_loading
+    @cached_property
     def context(self):
         """
         Return a context for the formula.
         """
         c = Context()
         c.add_transformation(
-            "[mass]", "[substance]", lambda ureg, x: x / self.molecular_mass.quantity
+            "[mass]", "[substance]", lambda reg, x: x / self.molecular_mass.quantity
         )
         c.add_transformation(
-            "[substance]", "[mass]", lambda ureg, x: x * self.molecular_mass.quantity
+            "[substance]", "[mass]", lambda reg, x: x * self.molecular_mass.quantity
         )
         return c
 
@@ -448,17 +410,41 @@ class Formula:
 
     def __eq__(self, other):
         return (
-            self.terms == other.terms
-            and self.number == other.number
-            and self.charge == other.charge
+                self.terms == other.terms
+                and self.number == other.number
+                and self.charge == other.charge
         )
 
     def __hash__(self):
         return hash((self.terms, self.number, self.charge))
 
 
+class CHPartialFormula(CHFormula):
+    terms: tuple[CHFormula, ...]
+    number = EvalDecimal("number")
+    charge = EvalDecimal("charge")
+
+    def __str__(self):
+        return (
+                ("(%s)" if self.number != 0 else "%s") % "".join(str(e) for e in self.terms)
+                + ("_{%s}" % self.number if self.number != 1 else "")
+                + ("^{%s}" % self.charge if self.charge else "")
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.terms, self.number, self.charge))
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+                isinstance(other, CHPartialFormula)
+                and self.terms == other.terms
+                and self.number == other.number
+                and self.charge == other.charge
+        )
+
+
 class FormulaUnit:
-    def __init__(self, formula: Iterable[Formula]):
+    def __init__(self, formula: Iterable[CHFormula]):
         self.formulas = tuple(formula)
 
     def __repr__(self):
@@ -496,7 +482,7 @@ class FormulaUnit:
 
     def __pow__(self, other):
         if isinstance(other, int):
-            return FormulaUnit([self.formulas] * other)
+            return FormulaUnit(*itertools.chain([self.formulas] * other))
         elif isinstance(other, FormulaUnit) and other.formulas == ():
             return FormulaUnit([])
         else:
@@ -533,18 +519,18 @@ class FormulaUnit:
 
 @dataclass
 class Reaction:
-    reactants: list[Formula]
+    reactants: list[CHFormula]
     to: Token
-    products: list[Formula]
+    products: list[CHFormula]
 
     def __str__(self) -> str:
         return (
-            " + ".join(map(str, self.reactants))
-            + " -> "
-            + " + ".join(map(str, self.products))
+                " + ".join(map(str, self.reactants))
+                + " -> "
+                + " + ".join(map(str, self.products))
         )
 
-    @lazy_loading
+    @cached_property
     def balanced(self):
         elements = set(
             chain(*(formula.count_dict for formula in self.reactants + self.products))
@@ -565,34 +551,33 @@ class Reaction:
         )
         try:
             simplified_result = [
-                result.get(variable, variable).subs(variables[-1], least_common_multiple)
+                result.get(variable, variable).subs(
+                    variables[-1], least_common_multiple
+                )
                 for variable in variables
             ]
         except InvalidOperation:
             raise handler.error("Can not balance {}".format(self))
         result = Reaction(
             [
-                Formula(reactant.terms, int(number))
+                CHFormula(reactant.terms, Decimal(number))
                 for reactant, number in zip(self.reactants, simplified_result)
             ],
             self.to,
             [
-                Formula(product.terms, int(number))
-                for product, number in zip(
-                    self.products, simplified_result[len(self.reactants) :]
-                )
+                CHFormula(product.terms, Decimal(number))
+                for product, number in zip(self.products, simplified_result[len(self.reactants):])
             ],
         )
         return result
 
-    @lazy_loading
+    @cached_property
     def context(self) -> dict[tuple[FormulaUnit, FormulaUnit], Decimal]:
         return {
             (
-                FormulaUnit([Formula(numerator.terms)]),
-                FormulaUnit([Formula(denominator.terms)]),
-            ): Decimal(denominator.number)
-            / Decimal(numerator.number)
+                FormulaUnit([CHFormula(numerator.terms)]),
+                FormulaUnit([CHFormula(denominator.terms)]),
+            ): Decimal(denominator.number) / Decimal(numerator.number)
             for numerator, denominator in permutations(
                 self.reactants + self.products, 2
             )

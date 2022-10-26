@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from chemistry_lang.ch_ast import (
     Assign,
@@ -18,6 +18,7 @@ from chemistry_lang.ch_ast import (
     Submit,
     ExprStmt,
     Block,
+    Expr,
 )
 from chemistry_lang.ch_error import CHError
 from chemistry_lang.ch_handler import handler
@@ -119,12 +120,12 @@ class Parser:
 
     def redo(self):
         kw = self.expect("Expect 'redo'", TokenType.REDO)
-        id = self.expect("Expect identifier", TokenType.ID).val
+        identifier = self.expect("Expect identifier", TokenType.ID).val
         self.expect("Expect 'of'", TokenType.OF)
         interval = self.interval()
         body = self.be()
         self.opt_sep()
-        return Redo(kw, id, interval, body)
+        return Redo(kw, identifier, interval, body)
 
     def opt_sep(self):
         if self.match(TokenType.SEP):
@@ -265,7 +266,9 @@ class Parser:
                     TokenType.UNIT,
                 )
                 left = Conversion(left, to, unit.val, reactions)
-            elif self.peek.type == TokenType.TO and self.peek_next.type != TokenType.PATH:
+            elif (
+                self.peek.type == TokenType.TO and self.peek_next.type != TokenType.PATH
+            ):
                 while to := self.match(TokenType.TO):
                     left = Conversion(
                         left,
@@ -390,3 +393,8 @@ class Parser:
 
     def error(self, msg: str, token: Token) -> None:
         return handler.error(msg, token)
+
+
+def parse(tokens: List[Token]) -> Block:
+    parser = Parser(tokens)
+    return parser.parse()

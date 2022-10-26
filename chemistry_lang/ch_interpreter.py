@@ -25,25 +25,15 @@ from chemistry_lang.ch_ast import (
 from chemistry_lang.ch_env import Env
 from chemistry_lang.ch_error import CHError
 from chemistry_lang.ch_handler import handler
-from chemistry_lang.ch_objs import CHQuantity, CHString, Formula, FormulaUnit
+from chemistry_lang.ch_objs import CHQuantity, CHString, CHFormula, FormulaUnit
 from chemistry_lang.ch_token import *
 from chemistry_lang.ch_work import CHWork, SubmitError, NativeWork
 
 
 class Interpreter:
-    _singleton = None
-
-    def __new__(cls: type) -> "Interpreter":
-        # Hack: make sure the interpreter is singleton
-        if Interpreter._singleton is None:
-            Interpreter._singleton = super().__new__(cls)
-        return Interpreter._singleton
-
     def __init__(self):
-        if not getattr(self, "inited", False):
-            self.global_env = Interpreter.init_global_env()
-            self.env = self.global_env
-        self.inited = True
+        self.global_env = Interpreter.init_global_env()
+        self.env = self.global_env
 
     @contextmanager
     def scope(self, env=None):
@@ -61,7 +51,8 @@ class Interpreter:
             .assign("print", NativeWork(lambda x: print(Interpreter.stringify(x)), 1))
             .assign("input", NativeWork(input, 1))
         )
-        import math, inspect
+        import math
+        import inspect
 
         for name, f in [
             member
@@ -72,7 +63,7 @@ class Interpreter:
             def _deco(func):
                 def _wrapper(arg):
                     if isinstance(arg, CHQuantity):
-                        arg = arg.value
+                        arg = arg.magnitude
                     return func(arg)
 
                 return _wrapper
@@ -134,7 +125,7 @@ class Interpreter:
 
     @evaluate.register(Call)
     def _eval_call(self, node: Call) -> Any:
-        callee = self.evaluate(node.callee)
+        callee: CHWork = self.evaluate(node.callee)
         if not callable(callee):
             raise handler.error("Call to non-function {}".format(callee))
         if len(node.args) != callee.arity:
@@ -210,8 +201,8 @@ class Interpreter:
                 print(balanced)
             context.update(balanced.context)
         unit = node.unit
-        if isinstance(unit, Formula):
-            unit = FormulaUnit([Formula(unit.terms)])
+        if isinstance(unit, CHFormula):
+            unit = FormulaUnit([CHFormula(unit.terms)])
         return self.evaluate(node.value).to(unit, context)
 
     @evaluate.register(Assign)
@@ -238,14 +229,14 @@ class Interpreter:
             return node.value.substituted()
         return node.value
 
-    @evaluate.register(Formula)
-    def _eval_formula(self, node: Formula) -> Any:
+    @evaluate.register(CHFormula)
+    def _eval_formula(self, node: CHFormula) -> Any:
         return node.molecular_mass
 
     @evaluate.register(Unary)
     def _eval_unary(self, node: Unary) -> Any:
         right = self.evaluate(node.right)
-        result = 0
+        result: Any
         match node.op:
             case TokenType.ADD:
                 result = +right
@@ -263,7 +254,7 @@ class Interpreter:
     def _eval_binary(self, node: Binary) -> Any:
         left = self.evaluate(node.left)
         right = self.evaluate(node.right)
-        result = 0
+        result: Any
         match node.op:
             case TokenType.ADD:
                 result = left + right
@@ -296,3 +287,6 @@ class Interpreter:
             case _:
                 raise handler.error(node.op, "Unknown operator")
         return result
+
+
+interpreter = Interpreter()

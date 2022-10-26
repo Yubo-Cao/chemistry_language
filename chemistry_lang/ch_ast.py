@@ -99,7 +99,7 @@ class Assign(NamedTuple):
 # All those ast nodes get a token field to store keyword, as we want to
 # report error to line.
 
-# Actually, nothing is statement. Everything evaluate to a value. However
+# Actually, nothing is statement. Everything evaluate to a value. However,
 # newline is a separator, so some kind of expression-y and statement-y mixture
 # is presented, as follows
 

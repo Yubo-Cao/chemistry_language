@@ -1,19 +1,18 @@
 from decimal import Decimal
-from functools import partial
+from functools import partial, cached_property
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Callable, Literal, cast, Optional
 
-from chemistry_lang.ch_base import shared_lazy_loading
 from chemistry_lang.ch_error import CHError
 from chemistry_lang.ch_handler import handler
-from chemistry_lang.ch_objs import Element, SubFormula, Formula
+from chemistry_lang.ch_objs import Element, CHPartialFormula, CHFormula
 from chemistry_lang.ch_periodic_table import periodic_table
 from chemistry_lang.ch_token import Token, TokenType
 from chemistry_lang.ch_ureg import ureg
 
 
-class Scanner:
+class Tokenizer:
     WHITESPACE = {" ": 1, "\t": 4}
 
     KEYWORDS = {
@@ -32,7 +31,7 @@ class Scanner:
     }
 
     def __init__(self, input_string: str):
-        self.input = input_string.strip()
+        self.input = input_string
         self.current = 0
         self.start = 0
         self.line = 1
@@ -54,7 +53,7 @@ class Scanner:
                 return True
             return handler.error(message, self.line)
 
-    @shared_lazy_loading
+    @cached_property
     def chem_start_letter(self):
         return {
             first_letter: set(v[1] if len(v) > 1 else "" for v in rest)
@@ -113,7 +112,7 @@ class Scanner:
     # Real scanning methods start here.
 
     def scan_token(self) -> None:
-        self.indent()
+        self.handle_indent()
 
         # Consume a character and start checking for a token.
         prev = self.advance()
@@ -124,8 +123,8 @@ class Scanner:
             # One character tokens
             case "(" | ")" | "{" | "}" | "," | "_" | "?" | ":" | "~":
                 return self.add_token(TokenType(prev))
-            # Two character tokens which may optionally be followed by '=' as short
-            # hand of a x= b => a = a x b, where x in any operators listed below
+            # Two character tokens which may optionally be followed by '=' as shorthand
+            # of a x= b => a = a x b, where x in any operators listed below
             case "+" | "!" | "%" | "<" | ">" | "=" | "^" | "/":
                 if self.match("="):
                     self.add_token(TokenType(prev + "="))
@@ -168,7 +167,7 @@ class Scanner:
                 self.add_token(TokenType.NUM, self.number())
             # chemical element
             case "V" | "N" | "X" | "B" | "K" | "W" | "U" | "G" | "M" | "P" | "S" | "Y" | "A" | "T" | "E" | "F" | "Z" | "O" | "D" | "H" | "R" | "C" | "L" | "I":
-                # since formula ->  ( element ( subscript )? ( superscript )? )+.
+                # since formula -> ( element ( subscript )? ( superscript )? )+.
                 # giving element a flag about whether first letter is already checked
                 # it a little ponderous, we use backtrack the first letter
                 self.current -= 1
@@ -222,7 +221,7 @@ class Scanner:
         if done_idx == -1:
             handler.error("Unterminated docstring", self.line)
         else:
-            self.between(predicate=lambda c: c.isspace())
+            self.skip_to(predicate=lambda c: c.isspace())
             done_idx -= 1
             line_offset = 0
 
@@ -263,7 +262,7 @@ class Scanner:
 
         # User can use "`" to quote anything and make it an identifier
         if self.previous == "`":
-            self.between("`")
+            self.skip_to("`")
             self.expect(
                 "Expect '`' to be followed by '`'. Unterminated identifier.", "`"
             )
@@ -276,7 +275,7 @@ class Scanner:
         # identifier that user may use.
         else:
             backtrack = self.current
-            self.between(predicate=lambda x: x.isalnum() or x == "_")
+            self.skip_to(predicate=lambda x: x.isalnum() or x == "_")
 
             if self.peek == "\\":
                 self.current = backtrack
@@ -292,7 +291,7 @@ class Scanner:
                 self.add_token(TokenType.ID, identifier)
         return True
 
-    def between(
+    def skip_to(
             self,
             start: str = "",
             end: str = cast(str, ...),
@@ -367,7 +366,7 @@ class Scanner:
 
     def string(self, sub: bool = False):
         pair = self.previous
-        self.between(pair)
+        self.skip_to(pair)
         self.expect(f"Unterminated string literal. Expect '{pair}'", pair)
 
         self.add_token(
@@ -377,7 +376,7 @@ class Scanner:
         )
 
     def ps(self):
-        self.between(predicate=lambda c: c != "\n")
+        self.skip_to(predicate=lambda c: c != "\n")
         self.add_token(TokenType.SEP)
         self.current += 1
         self.line += 1
@@ -388,12 +387,14 @@ class Scanner:
 
     def path(self) -> bool:
         if self.previous == "|":
-            self.between("|")
+            self.skip_to("|")
             self.expect("Unterminated path", "|")
-            self.add_token(TokenType.PATH, Path(self.input[self.start + 1: self.current - 1]))
+            self.add_token(
+                TokenType.PATH, Path(self.input[self.start + 1: self.current - 1])
+            )
             return True
         else:
-            self.between(self.is_path_char)
+            self.skip_to(self.is_path_char)
             end = self.current
 
             # We require a path to contain either, a drive name, e.g., C:, or at least one slash, e.g., \
@@ -445,7 +446,7 @@ class Scanner:
         self.proceed()
         return Element(name, subscript, superscript)
 
-    def formula(self) -> Formula:
+    def formula(self) -> Optional[CHFormula]:
         """
         It parses a chemical formula
         :return: A Compound object
@@ -454,9 +455,9 @@ class Scanner:
         if result is None:
             return None
         else:
-            return Formula(result)
-    
-    def _formula(self) -> Optional[list[SubFormula | Element]]:
+            return CHFormula(result)
+
+    def _formula(self) -> Optional[list[CHPartialFormula | Element]]:
         """
         Implementation detail of formula
         """
@@ -464,7 +465,7 @@ class Scanner:
         current_backtrack = self.current
         start_backtrack = self.start
 
-        elements: list[Element | SubFormula] = []
+        elements: list[Element | CHPartialFormula] = []
         while not self.end:
             if self.match("("):
                 self.proceed()
@@ -478,7 +479,7 @@ class Scanner:
                 )
                 self.proceed()
                 superscript = self.script("^", default=Decimal(0))
-                elements.append(SubFormula(tuple(formula), subscript, superscript))
+                elements.append(CHPartialFormula(tuple(formula), subscript, superscript))
             elif self.peek == ")":
                 return elements
             elif self.peek in self.chem_start_letter:
@@ -497,7 +498,7 @@ class Scanner:
 
         return elements
 
-    def indent(self) -> None:
+    def handle_indent(self) -> None:
         """
         The indent function is responsible for keeping track of the current indentation
         level. It does this by adding a DEDENT token to the token stream if we
@@ -507,7 +508,7 @@ class Scanner:
 
         if self.start_of_line:
             depth = 0
-            while (d := Scanner.WHITESPACE.get(self.peek, 0)) and not self.end:
+            while (d := Tokenizer.WHITESPACE.get(self.peek, 0)) and not self.end:
                 self.current += 1
                 depth += d
             self.start = self.current
@@ -523,3 +524,8 @@ class Scanner:
             ):
                 self.indent_stack.append(depth)
                 self.add_token(TokenType.INDENT, depth)
+
+
+def tokenize(source: str) -> list[Token]:
+    scanner = Tokenizer(source)
+    return scanner.scan_tokens()

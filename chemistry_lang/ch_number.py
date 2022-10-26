@@ -99,9 +99,9 @@ class CHNumber:
             num.decimal_digits = min(self.decimal_digits, other.decimal_digits)
             return num
         elif (
-                isinstance(other, int)
-                or isinstance(other, Decimal)
-                or isinstance(other, float)
+            isinstance(other, int)
+            or isinstance(other, Decimal)
+            or isinstance(other, float)
         ):
             num = CHNumber(self.value + other, 0)
             num.decimal_digits = min(
@@ -125,9 +125,9 @@ class CHNumber:
             num = CHNumber(self.value * other.value, min(self.sig_figs, other.sig_figs))
             return num
         elif (
-                isinstance(other, int)
-                or isinstance(other, Decimal)
-                or isinstance(other, float)
+            isinstance(other, int)
+            or isinstance(other, Decimal)
+            or isinstance(other, float)
         ):
             num = CHNumber(
                 self.value * other, min(self.sig_figs, self.guess_sig_figs(other))
@@ -144,9 +144,9 @@ class CHNumber:
             num = CHNumber(self.value / other.value, min(self.sig_figs, other.sig_figs))
             return num
         elif (
-                isinstance(other, int)
-                or isinstance(other, Decimal)
-                or isinstance(other, float)
+            isinstance(other, int)
+            or isinstance(other, Decimal)
+            or isinstance(other, float)
         ):
             num = CHNumber(
                 self.value / other, min(self.sig_figs, self.guess_decimal_digits(other))

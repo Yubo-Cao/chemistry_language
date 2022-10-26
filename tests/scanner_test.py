@@ -10,4 +10,5 @@ def test(str):
     scanner = Scanner(str, CHErrorHandler())
     pprint(scanner.scan_tokens())
 
-test(r'Ca(Cl_2H_{2}O)_{3}^{+3}')
+
+test(r"Ca(Cl_2H_{2}O)_{3}^{+3}")
