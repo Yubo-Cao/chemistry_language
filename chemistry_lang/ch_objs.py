@@ -37,7 +37,7 @@ class CHString:
 
     def substituted(self):
         from chemistry_lang.ch_eval import evaluate
-        from ch_interpreter import interpreter
+        from chemistry_lang.ch_interpreter import interpreter
 
         if self.need_substitute:
             results = [
