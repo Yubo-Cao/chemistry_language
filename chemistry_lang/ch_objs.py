@@ -561,12 +561,12 @@ class Reaction:
             raise handler.error("Can not balance {}".format(self))
         result = Reaction(
             [
-                CHFormula(reactant.terms, Decimal(number))
+                CHFormula(reactant.terms, Decimal(str(number)))
                 for reactant, number in zip(self.reactants, simplified_result)
             ],
             self.to,
             [
-                CHFormula(product.terms, Decimal(number))
+                CHFormula(product.terms, Decimal(str(number)))
                 for product, number in zip(
                 self.products, simplified_result[len(self.reactants):]
             )
