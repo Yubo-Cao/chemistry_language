@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
 from functools import cached_property
+from pathlib import Path
 
 from chemistry_lang.ch_handler import handler
 
@@ -15,11 +16,12 @@ class PeriodicTable:
 
     @cached_property
     def periodic_table(self) -> dict:
+        path = Path(__file__).parent / "periodic_table.json"
         try:
-            with open("periodic_table.json") as f:
+            with open(path) as f:
                 return json.load(f)
         except IOError as e:
-            raise handler.error("Failed to read 'atomic_mass'.json") from e
+            raise handler.error(f"Failed to read {path}") from e
 
 
 periodic_table = PeriodicTable()
