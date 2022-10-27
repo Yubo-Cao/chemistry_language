@@ -1,3 +1,8 @@
 5: Invalid character '\x04'
 6: Invalid character '\x04'
 4: Unterminated string literal. Expect '"'
+2: Expect expression.
+2: Expect newline
+1: Invalid character '.'
+Can not get context of formulaless
+Can not get context of formulaless

@@ -24,6 +24,9 @@ class Env:
         except AttributeError:
             raise handler.error(f"Variable '{name}' not found")
 
+    def __getitem__(self, item):
+        return self.lookup(item)
+
     def assign(self, name: str, value: Any) -> "Env":
         """
         Assign a variable to the environment.
@@ -54,3 +57,6 @@ class Env:
         copy = self.vars.copy()
         copy[name] = value
         return Env(self.parent, copy)
+
+    def __setitem__(self, key, value):
+        self.assign(key, value)

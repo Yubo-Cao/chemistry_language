@@ -36,12 +36,12 @@ class CHString:
         return self.string if not self.need_substitute else self.substituted()
 
     def substituted(self):
-        from main import ch
+        from chemistry_lang.ch_eval import evaluate
         from ch_interpreter import interpreter
 
         if self.need_substitute:
             results = [
-                interpreter.stringify(ch.evaluate(self.string[sub[0]: sub[1]]))
+                interpreter.stringify(evaluate(self.string[sub[0]: sub[1]]))
                 for sub in self.extract_subs
             ]
             ret = self.string
@@ -251,11 +251,12 @@ class CHQuantity:
         unit = self.unit
         if isinstance(target, Unit) and self.unit != target:
             try:
-                # take advantage of pint's unit conversion
-                # formula give a context to convert between gram and mol
-                magnitude = (self.magnitude * self.unit).to(
-                    target, self.formula.context
-                )
+                if self.formula.formulas:
+                    magnitude = (self.magnitude * self.unit).to(
+                        target, self.formula.context
+                    )  # formula-less has no context
+                else:
+                    magnitude = (self.magnitude * self.unit).to(target)
                 magnitude = Decimal(magnitude.magnitude)
                 unit = target
             except DimensionalityError:
@@ -284,7 +285,7 @@ class EvalDecimal:
             return self
         prop = getattr(instance, self.name)
         if isinstance(prop, str):
-            from main import ch
+            from chemistry_lang.ch_eval import ch
 
             prop = ch.evaluate(prop)
         return self.__check_type(prop)
@@ -331,8 +332,8 @@ class Element:
         return hash((self.symbol, self.number, self.charge))
 
     def __str__(self):
-        sub = '_{%s}' % self.number if self.number != 1 else ''
-        sup = '^{%s}' % self.charge if self.charge != 0 else ''
+        sub = "_{%s}" % self.number if self.number != 1 else ""
+        sup = "^{%s}" % self.charge if self.charge != 0 else ""
         return f"{self.symbol}{sub}{sup}"
 
     def __getattr__(self, item):
@@ -566,7 +567,9 @@ class Reaction:
             self.to,
             [
                 CHFormula(product.terms, Decimal(number))
-                for product, number in zip(self.products, simplified_result[len(self.reactants):])
+                for product, number in zip(
+                self.products, simplified_result[len(self.reactants):]
+            )
             ],
         )
         return result
@@ -577,7 +580,8 @@ class Reaction:
             (
                 FormulaUnit([CHFormula(numerator.terms)]),
                 FormulaUnit([CHFormula(denominator.terms)]),
-            ): Decimal(denominator.number) / Decimal(numerator.number)
+            ): Decimal(denominator.number)
+               / Decimal(numerator.number)
             for numerator, denominator in permutations(
                 self.reactants + self.products, 2
             )

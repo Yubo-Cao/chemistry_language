@@ -31,7 +31,7 @@ class Tokenizer:
     }
 
     def __init__(self, input_string: str):
-        self.input = input_string
+        self.to_be_scanned = input_string.strip()
         self.current = 0
         self.start = 0
         self.line = 1
@@ -67,20 +67,20 @@ class Tokenizer:
 
     @property
     def end(self) -> bool:
-        return self.current >= len(self.input)
+        return self.current >= len(self.to_be_scanned)
 
     @property
     def previous(self) -> str:
-        return self.input[self.current - 1] if self.current > 0 else ""
+        return self.to_be_scanned[self.current - 1] if self.current > 0 else ""
 
     @property
     def peek(self) -> str:
-        return self.input[self.current] if not self.end else ""
+        return self.to_be_scanned[self.current] if not self.end else ""
 
     def advance(self) -> str:
         if not self.end:
             self.current += 1
-            return self.input[self.current - 1]
+            return self.to_be_scanned[self.current - 1]
         return ""
 
     def match(self, *char: str) -> str:
@@ -94,7 +94,7 @@ class Tokenizer:
         self.start = self.current
 
     def add_token(
-            self, token_type: TokenType, value: Any = None, attr: Any = None
+        self, token_type: TokenType, value: Any = None, attr: Any = None
     ) -> None:
         self.tokens.append(Token(token_type, value, self.line, attr))
 
@@ -102,7 +102,7 @@ class Tokenizer:
         while not self.end:
             self.scan_token()
             self.start = self.current
-        if self.input[-1] != "\n":
+        if self.to_be_scanned and self.to_be_scanned[-1] != "\n":
             self.add_token(TokenType.SEP)
         while self.indent_stack:
             self.add_token(TokenType.DEDENT, self.indent_stack.pop())
@@ -216,7 +216,7 @@ class Tokenizer:
                 handler.error(f"Invalid character {prev!r}", self.line)
 
     def docstring(self):
-        done_idx = self.input.find("done", self.current)
+        done_idx = self.to_be_scanned.find("done", self.current)
         raw_done = done_idx
         if done_idx == -1:
             handler.error("Unterminated docstring", self.line)
@@ -225,12 +225,12 @@ class Tokenizer:
             done_idx -= 1
             line_offset = 0
 
-            while self.input[done_idx].isspace():
-                if self.input[done_idx] == "\n":
+            while self.to_be_scanned[done_idx].isspace():
+                if self.to_be_scanned[done_idx] == "\n":
                     line_offset += 1
                 done_idx -= 1
 
-            lines = self.input[self.current: done_idx + 1].split("\n")
+            lines = self.to_be_scanned[self.current : done_idx + 1].split("\n")
 
             min_white_space = min(self.count_white_space(line) for line in lines)
             docstring = "\n".join(line[min_white_space:] for line in lines)
@@ -268,7 +268,9 @@ class Tokenizer:
             )
             self.add_token(
                 TokenType.ID,
-                self.input[self.start + 1: self.current - 1].replace("\\`", "`"),
+                self.to_be_scanned[self.start + 1 : self.current - 1].replace(
+                    "\\`", "`"
+                ),
             )
         # If they do not quote, we assume it is an identifier. If it is followed by
         # a '\', it is a path. Otherwise, it is a keyword, unit, or finally, an
@@ -281,7 +283,7 @@ class Tokenizer:
                 self.current = backtrack
                 return False
 
-            identifier = self.input[self.start: self.current]
+            identifier = self.to_be_scanned[self.start : self.current]
 
             if identifier in self.KEYWORDS:
                 self.add_token(TokenType(identifier), identifier)
@@ -292,11 +294,11 @@ class Tokenizer:
         return True
 
     def skip_to(
-            self,
-            start: str = "",
-            end: str = cast(str, ...),
-            predicate: Callable = cast(Callable, ...),
-            escapable: bool = True,
+        self,
+        start: str = "",
+        end: str = cast(str, ...),
+        predicate: Callable = cast(Callable, ...),
+        escapable: bool = True,
     ):
         """
         The between function is a helper function that allows we to parse:
@@ -322,9 +324,9 @@ class Tokenizer:
                 self.advance()
         elif end == start:
             while (
-                    self.peek != start or self.previous == "\\"
-                    if escapable
-                    else self.peek != start
+                self.peek != start or self.previous == "\\"
+                if escapable
+                else self.peek != start
             ) and not self.end:
                 if self.peek == "\n":
                     self.line += 1
@@ -346,19 +348,17 @@ class Tokenizer:
                 handler.error(f"Unmatched braces. Expect '{end}'", self.line)
 
     def number(self):
-        while self.peek.isdigit() or self.peek == "_":
-            self.advance()
-        if self.peek == "." and self.input[self.current + 1].isdigit():
+        self.skip_to(predicate=lambda x: x.isdigit() or x == "_")
+        if self.peek == "." and self.to_be_scanned[self.current + 1].isdigit():
             self.match(".")
-            while self.peek.isdigit() or self.peek == "_":
-                self.advance()
+            self.skip_to(predicate=lambda x: x.isdigit() or x == "_")
             if self.match("e", "E"):
                 self.match("+", "-")
                 while self.peek.isdigit():
                     self.advance()
 
         # Decimal handles float/integer very well. So we piggyback on it.
-        num = self.input[self.start: self.current]
+        num = self.to_be_scanned[self.start : self.current]
         try:
             return Decimal(num) if num else ""
         except CHError:
@@ -371,7 +371,7 @@ class Tokenizer:
 
         self.add_token(
             TokenType.STR,
-            self.input[self.start + 1: self.current - 1],
+            self.to_be_scanned[self.start + 1 : self.current - 1],
             {"sub": sub},
         )
 
@@ -390,7 +390,8 @@ class Tokenizer:
             self.skip_to("|")
             self.expect("Unterminated path", "|")
             self.add_token(
-                TokenType.PATH, Path(self.input[self.start + 1: self.current - 1])
+                TokenType.PATH,
+                Path(self.to_be_scanned[self.start + 1 : self.current - 1]),
             )
             return True
         else:
@@ -400,9 +401,11 @@ class Tokenizer:
             # We require a path to contain either, a drive name, e.g., C:, or at least one slash, e.g., \
             # doing so meet the design requirement of a path.
             if self.start != self.current and (
-                    "\\" in (res := self.input[self.start: end]) or ":" in res
+                "\\" in (res := self.to_be_scanned[self.start : end]) or ":" in res
             ):
-                self.add_token(TokenType.PATH, Path(self.input[self.start: end]))
+                self.add_token(
+                    TokenType.PATH, Path(self.to_be_scanned[self.start : end])
+                )
                 return True
         return False
 
@@ -410,13 +413,13 @@ class Tokenizer:
         backtrack = self.current
         start = self.match(*self.chem_start_letter.keys())
         matched = (
-                self.match(*(sec := self.chem_start_letter.get(start, {}))) or "" in sec
+            self.match(*(sec := self.chem_start_letter.get(start, {}))) or "" in sec
         )
         if not matched:
             self.current = backtrack
             return ""
         else:
-            return self.input[self.start: self.current]
+            return self.to_be_scanned[self.start : self.current]
 
     def script(self, start: Literal["_", "^"] = "_", default: Decimal = None):
         if self.match(start):
@@ -428,7 +431,7 @@ class Tokenizer:
                 self.expect(
                     "Unterminated {'sub' if start == '_' else 'super'}script", "}"
                 )
-                return self.input[self.start: self.current - 1]
+                return self.to_be_scanned[self.start : self.current - 1]
             else:
                 # Subscript and superscript have infinite significance
                 return self.expect(f"Expect number after '{start}'", self.number)
@@ -479,7 +482,9 @@ class Tokenizer:
                 )
                 self.proceed()
                 superscript = self.script("^", default=Decimal(0))
-                elements.append(CHPartialFormula(tuple(formula), subscript, superscript))
+                elements.append(
+                    CHPartialFormula(tuple(formula), subscript, superscript)
+                )
             elif self.peek == ")":
                 return elements
             elif self.peek in self.chem_start_letter:
@@ -518,9 +523,9 @@ class Tokenizer:
                 self.add_token(TokenType.DEDENT, self.indent_stack.pop())
 
             if depth != 0 and (
-                    not self.indent_stack
-                    or self.indent_stack
-                    and depth > self.indent_stack[-1]
+                not self.indent_stack
+                or self.indent_stack
+                and depth > self.indent_stack[-1]
             ):
                 self.indent_stack.append(depth)
                 self.add_token(TokenType.INDENT, depth)

@@ -54,21 +54,20 @@ class Interpreter:
         import math
         import inspect
 
+        def wrap_fn(func):
+            def decorator(arg):
+                if isinstance(arg, CHQuantity):
+                    arg = arg.magnitude
+                return CHQuantity(arg.formula, func(arg), arg.unit)
+
+            return decorator
+
         for name, f in [
             member
             for member in inspect.getmembers(math)
             if callable(member[1]) and not member[0].startswith("__")
         ]:
-
-            def _deco(func):
-                def _wrapper(arg):
-                    if isinstance(arg, CHQuantity):
-                        arg = arg.magnitude
-                    return func(arg)
-
-                return _wrapper
-
-            env = env.assign(name, NativeWork(_deco(f), 1))
+            env = env.assign(name, NativeWork(wrap_fn(f), 1))
         return env
 
     def interpret(self, node: Any) -> Any:
@@ -103,7 +102,11 @@ class Interpreter:
 
     @singledispatchmethod
     def evaluate(self, node: Any) -> Any:
-        pass
+        """
+        Evaluate an expression.
+        """
+
+        raise NotImplementedError(node)
 
     @evaluate.register(Write)
     def _eval_write(self, node: Write) -> Any:
@@ -116,8 +119,12 @@ class Interpreter:
 
     @evaluate.register(During)
     def _eval_during(self, node: During) -> Any:
-        while self.evaluate(node.cond):
-            self.execute(node.body)
+        results = []
+        with self.scope():
+            while self.evaluate(node.cond):
+                result = self.execute(node.body)
+                results.append(result)
+        return results
 
     @evaluate.register(Block)
     def _eval_block(self, node: Block) -> Any:
@@ -197,7 +204,7 @@ class Interpreter:
         context = {}
         for rxn in node.reaction:
             balanced = rxn.balanced
-            if self.env.lookup("show_balanced_equation"):
+            if self.env["show_balanced_equation"]:
                 print(balanced)
             context.update(balanced.context)
         unit = node.unit
