@@ -74,6 +74,7 @@ def gui():
         QWidget,
     )
     from PySide6.QtCore import Qt
+    from PySide6.QtGui import QIcon
     from qt_material import apply_stylesheet
 
     def row(*widgets, spacing=4, as_layout=False):
@@ -149,7 +150,10 @@ def gui():
             self.parent = parent
             right = column(
                 column(title("Output"), output := Stream()),
-                column(title("Result"), [result := QTextEdit(), result.setReadOnly(True)][0]),
+                column(
+                    title("Result"),
+                    [result := QTextEdit(), result.setReadOnly(True)][0],
+                ),
                 spacing=8,
             )
             left = column(title("Input"), input := QPlainTextEdit(), spacing=4)
@@ -165,9 +169,11 @@ def gui():
             self.__dict__.update(controls)
             self.redirect_output()
 
+            input.setStyleSheet("background-color: #fafafa; ")
             for control in controls.values():
-                control.setStyleSheet("font-size: 12px; font-family: Fira Code, monospace")
-                control.setFont(QFont("Fira Code, monospace"))
+                control.setStyleSheet(
+                    "font-family: Fira Code, monospace; background-color: #fafafa; "
+                )
 
         def clear(self):
             self.output.clear()
@@ -176,9 +182,7 @@ def gui():
         def redirect_output(self):
             env = interpreter.global_env.assign(
                 "print", NativeWork(lambda x: self.print(interpreter.stringify(x)), 1)
-            ).assign(
-                "clear", NativeWork(lambda: self.clear(), 0)
-            )
+            ).assign("clear", NativeWork(lambda: self.clear(), 0))
             interpreter.global_env = env
             interpreter.env = env
 
@@ -209,6 +213,8 @@ def gui():
 
     app = QApplication()
     window = MainWindow()
+    icon = QIcon("assets/atom.png")
+    app.setWindowIcon(icon)
     apply_stylesheet(app, theme="light_blue.xml")
     window.show()
     app.exec()
