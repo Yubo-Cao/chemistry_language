@@ -285,9 +285,9 @@ class EvalDecimal:
             return self
         prop = getattr(instance, self.name)
         if isinstance(prop, str):
-            from chemistry_lang.ch_eval import ch
+            from chemistry_lang.ch_eval import evaluate
 
-            prop = ch.evaluate(prop)
+            prop = evaluate(prop)
         return self.__check_type(prop)
 
     def __set__(self, instance, value):
