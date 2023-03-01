@@ -29,7 +29,7 @@ class CHString:
 
     def __repr__(self):
         return (
-                "<CHString " + ("s'" if self.need_substitute else "'") + self.string + "'>"
+            "<CHString " + ("s'" if self.need_substitute else "'") + self.string + "'>"
         )
 
     def __str__(self):
@@ -41,13 +41,13 @@ class CHString:
 
         if self.need_substitute:
             results = [
-                interpreter.stringify(evaluate(self.string[sub[0]: sub[1]]))
+                interpreter.stringify(evaluate(self.string[sub[0] : sub[1]]))
                 for sub in self.extract_subs
             ]
             ret = self.string
             offset = 0
             for sub, res in zip(self.extract_subs, results):
-                ret = ret[: sub[0] + offset - 1] + res + ret[sub[1] + offset + 1:]
+                ret = ret[: sub[0] + offset - 1] + res + ret[sub[1] + offset + 1 :]
                 offset += len(res) - (sub[1] - sub[0] + 2)
             return ret.replace(r"\}", "}").replace(r"\{", "{")
         else:
@@ -111,9 +111,9 @@ class CHQuantity:
         )
 
     def binary_operation(
-            self,
-            other,
-            operator: Callable[[Quantity | Decimal, Quantity | Decimal], Quantity],
+        self,
+        other,
+        operator: Callable[[Quantity | Decimal, Quantity | Decimal], Quantity],
     ) -> tuple[Unit, Decimal]:
         try:
             if isinstance(other, CHQuantity):
@@ -121,9 +121,9 @@ class CHQuantity:
             elif isinstance(other, Quantity):
                 res = operator(self.unit * self.magnitude, other)
             elif (
-                    isinstance(other, int)
-                    or isinstance(other, float)
-                    or isinstance(other, Decimal)
+                isinstance(other, int)
+                or isinstance(other, float)
+                or isinstance(other, Decimal)
             ):
                 res = operator(self.magnitude, other) * self.unit
             else:
@@ -187,7 +187,7 @@ class CHQuantity:
     def __pow__(self, other):
         unit, mag = self.binary_operation(other, pow)
         return CHQuantity(
-            self.formula ** other.formula
+            self.formula**other.formula
             if isinstance(other, CHQuantity)
             else self.formula,
             mag,
@@ -323,9 +323,9 @@ class Element:
 
     def __eq__(self, other):
         return (
-                self.symbol == other.symbol
-                and self.number == other.number
-                and self.charge == other.charge
+            self.symbol == other.symbol
+            and self.number == other.number
+            and self.charge == other.charge
         )
 
     def __hash__(self):
@@ -355,9 +355,9 @@ class CHFormula:
 
     def __str__(self) -> str:
         return (
-                (str(self.number) if self.number != 1 else "")
-                + "".join(map(str, self.terms))
-                + ("^{%d}" % self.charge if self.charge else "")
+            (str(self.number) if self.number != 1 else "")
+            + "".join(map(str, self.terms))
+            + ("^{%d}" % self.charge if self.charge else "")
         )
 
     @cached_property
@@ -411,9 +411,9 @@ class CHFormula:
 
     def __eq__(self, other):
         return (
-                self.terms == other.terms
-                and self.number == other.number
-                and self.charge == other.charge
+            self.terms == other.terms
+            and self.number == other.number
+            and self.charge == other.charge
         )
 
     def __hash__(self):
@@ -427,9 +427,9 @@ class CHPartialFormula(CHFormula):
 
     def __str__(self):
         return (
-                ("(%s)" if self.number != 0 else "%s") % "".join(str(e) for e in self.terms)
-                + ("_{%s}" % self.number if self.number != 1 else "")
-                + ("^{%s}" % self.charge if self.charge else "")
+            ("(%s)" if self.number != 0 else "%s") % "".join(str(e) for e in self.terms)
+            + ("_{%s}" % self.number if self.number != 1 else "")
+            + ("^{%s}" % self.charge if self.charge else "")
         )
 
     def __hash__(self) -> int:
@@ -437,10 +437,10 @@ class CHPartialFormula(CHFormula):
 
     def __eq__(self, other: Any) -> bool:
         return (
-                isinstance(other, CHPartialFormula)
-                and self.terms == other.terms
-                and self.number == other.number
-                and self.charge == other.charge
+            isinstance(other, CHPartialFormula)
+            and self.terms == other.terms
+            and self.number == other.number
+            and self.charge == other.charge
         )
 
 
@@ -526,9 +526,9 @@ class Reaction:
 
     def __str__(self) -> str:
         return (
-                " + ".join(map(str, self.reactants))
-                + " -> "
-                + " + ".join(map(str, self.products))
+            " + ".join(map(str, self.reactants))
+            + " -> "
+            + " + ".join(map(str, self.products))
         )
 
     @cached_property
@@ -568,8 +568,8 @@ class Reaction:
             [
                 CHFormula(product.terms, Decimal(str(number)))
                 for product, number in zip(
-                self.products, simplified_result[len(self.reactants):]
-            )
+                    self.products, simplified_result[len(self.reactants) :]
+                )
             ],
         )
         return result
@@ -581,7 +581,7 @@ class Reaction:
                 FormulaUnit([CHFormula(numerator.terms)]),
                 FormulaUnit([CHFormula(denominator.terms)]),
             ): Decimal(denominator.number)
-               / Decimal(numerator.number)
+            / Decimal(numerator.number)
             for numerator, denominator in permutations(
                 self.reactants + self.products, 2
             )

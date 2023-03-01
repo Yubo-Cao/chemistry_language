@@ -5,9 +5,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Literal
 
-from PySide6.QtGui import QKeyEvent, QFont
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit
-
 from chemistry_lang import evaluate, interpreter
 from chemistry_lang.ch_handler import logger
 from chemistry_lang.ch_work import NativeWork
@@ -72,69 +69,113 @@ def gui():
         QTextEdit,
         QVBoxLayout,
         QWidget,
+        QHBoxLayout,
+        QLabel,
+        QPlainTextEdit,
     )
     from PySide6.QtCore import Qt
-    from PySide6.QtGui import QIcon
-    from qt_material import apply_stylesheet
+    from PySide6.QtGui import QIcon, QKeyEvent, QTextCursor, QFont
 
-    def row(*widgets, spacing=4, as_layout=False):
+    def row(
+        *widgets: QWidget,
+        spacing: int = 4,
+        as_layout: bool = False,
+        stylesheet: str = "",
+    ) -> QHBoxLayout | QWidget:
+        """
+        Create a row layout/QHBoxLayout
+        """
+
         layout = QHBoxLayout()
-        layout.setSpacing(spacing)
-        for widget in widgets:
-            layout.addWidget(widget)
-        if as_layout:
-            return layout
-        widget = QWidget()
-        widget.setLayout(layout)
-        return widget
+        return _layout_helper(as_layout, layout, spacing, widgets, stylesheet)
 
-    def column(*widgets, spacing=4, as_layout=False):
+    def column(
+        *widgets: QWidget,
+        spacing: int = 4,
+        as_layout: bool = False,
+        stylesheet: str = "",
+    ) -> QVBoxLayout | QWidget:
+        """
+        Create a column layout/QVBoxLayout
+        """
+
         layout = QVBoxLayout()
+        return _layout_helper(as_layout, layout, spacing, widgets, stylesheet)
+
+    def _layout_helper(as_layout, layout, spacing, widgets, stylesheet):
         layout.setSpacing(spacing)
+        layout.setContentsMargins(0, 0, 0, 0)
         for widget in widgets:
             layout.addWidget(widget)
         if as_layout:
+            assert not stylesheet, "Cannot set stylesheet on layout"
             return layout
         widget = QWidget()
         widget.setLayout(layout)
+        widget.setContentsMargins(0, 0, 0, 0)
+        widget.setStyleSheet(stylesheet)
         return widget
 
-    def title(text):
+    def title(text: str) -> QWidget:
+        """
+        Create a title widget
+        """
+
         label = QLabel(text)
-        label.setStyleSheet("font-size: 10px")
-        label.setStyleSheet("font-weight: bold")
+        label.setStyleSheet(
+            """
+            font-family: Inter, "Segoe UI", sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            """
+        )
+        font = label.font()
+        font.setStyleStrategy(QFont.PreferAntialias)
         return label
 
     class Stream(QTextEdit):
-        def __init__(self, *args, **kwargs):
+        def __init__(
+            self, *args, type: Literal["stdout", "stderr"] = "stdout", **kwargs
+        ):
             super().__init__(*args, **kwargs)
             self.setAcceptRichText(True)
             self.setReadOnly(True)
-
-        def write(self, text, stream: Literal["stdout", "stderr"] = "stdout"):
-            style = {}
-            if stream == "stdout":
-                style["color"] = "black"
-            elif stream == "stderr":
-                style["color"] = "red"
-            else:
-                raise ValueError(f"Unknown stream {stream}")
-            style_str = ";".join(f"{k}: {v}" for k, v in style.items())
-            self.document().setHtml(
-                self.document().toHtml() + f'<span style="{style_str}">{text}</span>'
+            self.type = type
+            self.setStyleSheet(
+                """
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                font-size: 14px;
+                font-family: Fira Code, "Segoe UI Mono", monospace;
+                padding: 8px;
+                """
             )
+
+        def clear(self):
+            self.document().clear()
+
+        def write(self, text, type: Literal["stdout", "stderr"] = ""):
+            self.document().lastBlock()
+            cursor = self.textCursor()
+            cursor.movePosition(QTextCursor.End)
+            style = "black" if (type or self.type) == "stdout" else "red"
+            cursor.insertHtml(f'<span style="color: {style}">{text}</span>')
+            self.setTextCursor(cursor)
+            self.ensureCursorVisible()
 
         def flush(self):
             pass
 
         def read(self):
-            return self.text.toPlainText()
+            return self.toPlainText()
 
-        def as_stream(self, stream: Literal["stdout", "stderr"] = "stdout"):
-            ns = SimpleNamespace()
-            ns.write = functools.partial(self.write, stream=stream)
-            ns.flush = self.flush
-            return ns
+        def as_stream(self, type: Literal["stdout", "stderr"] = ""):
+            return SimpleNamespace(
+                write=lambda x: self.write(x, type=type),
+                flush=lambda: None,
+                read=lambda: self.read(),
+            )
 
     class MainWidget(QWidget):
         """
@@ -152,28 +193,30 @@ def gui():
                 column(title("Output"), output := Stream()),
                 column(
                     title("Result"),
-                    [result := QTextEdit(), result.setReadOnly(True)][0],
+                    result := Stream(),
                 ),
                 spacing=8,
             )
-            left = column(title("Input"), input := QPlainTextEdit(), spacing=4)
-            main = row(left, right, spacing=8, as_layout=True)
-            self.setLayout(main)
-
-            controls = {
-                "input": input,
-                "output": output,
-                "result": result,
-            }
-
-            self.__dict__.update(controls)
+            left = column(
+                title("Input"),
+                repl := QPlainTextEdit(),
+            )
+            self.setLayout(row(left, right, as_layout=True, spacing=16))
+            self.setContentsMargins(16, 16, 16, 16)
+            repl.setStyleSheet(
+                """
+                font-family: Fira Code, "Segoe UI Mono", monospace;
+                font-size: 14px;
+                background-color: #e2e8f0;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                padding: 8px;
+                """
+            )
+            self.repl = repl
+            self.output = output
+            self.result = result
             self.redirect_output()
-
-            input.setStyleSheet("background-color: #fafafa; ")
-            for control in controls.values():
-                control.setStyleSheet(
-                    "font-family: Fira Code, monospace; background-color: #fafafa; "
-                )
 
         def clear(self):
             self.output.clear()
@@ -185,7 +228,6 @@ def gui():
             ).assign("clear", NativeWork(lambda: self.clear(), 0))
             interpreter.global_env = env
             interpreter.env = env
-
             logger.addHandler(StreamHandler(self.output.as_stream("stderr")))
 
         @functools.wraps(Stream.write)
@@ -193,7 +235,7 @@ def gui():
             self.output.write(*args, **kwargs)
 
         def eval(self):
-            code = self.input.toPlainText()
+            code = self.repl.toPlainText()
             result: Any
             try:
                 result = evaluate(code)
@@ -204,18 +246,25 @@ def gui():
         def keyPressEvent(self, event: QKeyEvent):
             if event.key() == Qt.Key_Return and event.modifiers() == Qt.ControlModifier:
                 self.eval()
+            if event.key() == Qt.Key_L and event.modifiers() == Qt.ControlModifier:
+                self.clear()
+            super().keyPressEvent(event)
 
     class MainWindow(QMainWindow):
         def __init__(self):
             super().__init__()
             self.setWindowTitle("Chemistry Lang")
             self.setCentralWidget(MainWidget(self))
+            self.setStyleSheet(
+                """
+                background-color: #f8fafc;
+                """
+            )
 
     app = QApplication()
-    window = MainWindow()
     icon = QIcon("assets/atom.png")
     app.setWindowIcon(icon)
-    apply_stylesheet(app, theme="light_blue.xml")
+    window = MainWindow()
     window.show()
     app.exec()
 
