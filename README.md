@@ -1,8 +1,7 @@
-# Chemistry Utils
+# Chemistry Language
 
-Welcome to chemistry helper, a complete calculator to bash your chemistry
-homework. It does not have OOP, but it is a lot more powerful than a
-calculator — it is Turing complete.
+Chemistry Language is a programming language designed to solve chemistry problems. Despite its seemingly complex nature as a programming language, it is essentially a calculator with advanced capabilities. It features automatic dimensional analysis and implicit automatic unit conversion using `pint`. This tool is especially helpful for chemistry students because it treats chemical formulas as first-class citizens and allows quantities to be expressed with substances/formulas as their units for easy tracking. Furthermore, it assists in stoichiometry by using chemistry formulas as molar mass conversion factors to convert between moles, atoms, and grams. Finally, this language adopt a Python-styled syntax with keywords that are created with chemistry students in mind.
+
 
 ## Syntax
 
