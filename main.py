@@ -251,6 +251,7 @@ def gui():
                 self.clear()
             if event.key() == Qt.Key_R and event.modifiers() == Qt.ControlModifier:
                 interpreter.reset()
+                self.redirect_output()
             super().keyPressEvent(event)
 
     class MainWindow(QMainWindow):
