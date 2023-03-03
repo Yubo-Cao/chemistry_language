@@ -160,7 +160,8 @@ def gui():
             cursor = self.textCursor()
             cursor.movePosition(QTextCursor.End)
             style = "black" if (type or self.type) == "stdout" else "red"
-            cursor.insertHtml(f'<span style="color: {style}">{text}</span>')
+            cursor.insertHtml(f'<p style="color: {style}">{text}</p>')
+            cursor.insertHtml("<br>")
             self.setTextCursor(cursor)
             self.ensureCursorVisible()
 
@@ -224,7 +225,7 @@ def gui():
 
         def redirect_output(self):
             env = interpreter.global_env.assign(
-                "print", NativeWork(lambda x: self.print(interpreter.stringify(x)), 1)
+                "print", NativeWork(lambda x: self.print(interpreter.stringify(x) + "\n"), 1)
             ).assign("clear", NativeWork(lambda: self.clear(), 0))
             interpreter.global_env = env
             interpreter.env = env
@@ -248,6 +249,8 @@ def gui():
                 self.eval()
             if event.key() == Qt.Key_L and event.modifiers() == Qt.ControlModifier:
                 self.clear()
+            if event.key() == Qt.Key_R and event.modifiers() == Qt.ControlModifier:
+                interpreter.reset()
             super().keyPressEvent(event)
 
     class MainWindow(QMainWindow):

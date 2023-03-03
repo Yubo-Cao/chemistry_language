@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from contextlib import contextmanager
 from decimal import Decimal
 from functools import singledispatchmethod
@@ -70,6 +71,14 @@ class Interpreter:
             env = env.assign(name, NativeWork(wrap_fn(f), 1))
         return env
 
+    def reset(self):
+        """
+        Reset the interpreter
+        """
+
+        self.global_env = self.init_global_env()
+        self.env = self.global_env
+
     def interpret(self, node: Any) -> Any:
         return Interpreter.stringify(self.evaluate(node))
 
@@ -97,6 +106,18 @@ class Interpreter:
             return "pass"
         elif val is False:
             return "fail"
+        elif isinstance(val, str):
+            return val
+        elif isinstance(val, Iterable):
+            match val:
+                case list():
+                    return "[" + ", ".join(map(Interpreter.stringify, val)) + "]"
+                case tuple():
+                    return "(" + ", ".join(map(Interpreter.stringify, val)) + ")"
+                case set():
+                    return "{" + ", ".join(map(Interpreter.stringify, val)) + "}"
+                case dict():
+                    return "{" + ", ".join(map(Interpreter.stringify, val.items())) + "}"
         else:
             return str(val)
 
@@ -274,7 +295,7 @@ class Interpreter:
             case TokenType.MOD:
                 result = left % right
             case TokenType.CARET | TokenType.MULMUL:
-                result = left**right
+                result = left ** right
             case TokenType.LE:
                 result = left <= right
             case TokenType.LT:

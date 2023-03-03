@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from chemistry_lang.ch_ast import Work
 from chemistry_lang.ch_env import Env
 
@@ -13,7 +15,7 @@ class SubmitError(Exception):
 
 
 class NativeWork:
-    def __init__(self, callable, arity):
+    def __init__(self, callable: Callable, arity: int):
         self.callable = callable
         self._arity = arity
 
