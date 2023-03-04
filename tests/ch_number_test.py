@@ -41,6 +41,13 @@ def test_add():
     assert r.sig_fig == 2
     assert str(r) == "2.4"
 
+    a = SignificantDigits("1.2")
+    b = SignificantDigits("1.3")
+    r = a + b
+    assert r.value == Decimal("2.5")
+    assert r.sig_fig == 2
+    assert str(r) == "2.5"
+
 
 def test_sub():
     a = SignificantDigits("1.2434")
