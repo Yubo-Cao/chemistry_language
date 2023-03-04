@@ -84,6 +84,15 @@ class SignificantDigits:
         result = self._extract_value(other) / self.value
         return SignificantDigits(result, precision)
 
+    def __eq__(self, other):
+        return self.value == self._extract_value(other) and self.sig_fig == self._get_significant_digits(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash((self.value, self.sig_fig))
+
     @staticmethod
     def _get_decimal_places(value: SupportedNumber) -> int:
         val = SignificantDigits._extract_value(value)
