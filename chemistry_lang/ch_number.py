@@ -108,3 +108,6 @@ class SignificantDigits:
             case _:
                 raise handler.error(f"Can't extract value from {other}")
         return other_value
+
+
+CHNumber = SignificantDigits
