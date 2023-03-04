@@ -15,7 +15,9 @@ class SignificantDigits:
             self.value = Decimal(value)
         else:
             self.value: Decimal = Decimal(self._extract_value(value))
-        self.sig_fig = sig_fig if sig_fig != -1 else self._parse_significant_digits(value)
+        self.sig_fig = (
+            sig_fig if sig_fig != -1 else self._parse_significant_digits(value)
+        )
 
     def __str__(self):
         if self.sig_fig == 0:
@@ -26,25 +28,40 @@ class SignificantDigits:
         return f"SignificantDigits({self.value}, {self.sig_fig})"
 
     def __add__(self, other: SupportedNumber):
-        precision = min(self._get_decimal_places(self.value), self._get_decimal_places(other))
+        precision = min(
+            self._get_decimal_places(self.value), self._get_decimal_places(other)
+        )
         result = self.value + self._extract_value(other)
-        return SignificantDigits(result, self._parse_significant_digits(f'{result:.0{precision}f}'))
+        return SignificantDigits(
+            result, self._parse_significant_digits(f"{result:.0{precision}f}")
+        )
 
     def __radd__(self, other: SupportedNumber):
         return self.__add__(other)
 
     def __sub__(self, other: SupportedNumber):
-        precision = min(self._get_decimal_places(self.value), self._get_decimal_places(other))
+        precision = min(
+            self._get_decimal_places(self.value), self._get_decimal_places(other)
+        )
         result = self.value - self._extract_value(other)
-        return SignificantDigits(result, self._parse_significant_digits(f'{result:.0{precision}f}'))
+        return SignificantDigits(
+            result, self._parse_significant_digits(f"{result:.0{precision}f}")
+        )
 
     def __rsub__(self, other: SupportedNumber):
-        precision = min(self._get_decimal_places(self.value), self._get_decimal_places(other))
+        precision = min(
+            self._get_decimal_places(self.value), self._get_decimal_places(other)
+        )
         result = self._extract_value(other) - self.value
-        return SignificantDigits(result, self._parse_significant_digits(f'{result:.0{precision}f}'))
+        return SignificantDigits(
+            result, self._parse_significant_digits(f"{result:.0{precision}f}")
+        )
 
     def __mul__(self, other: SupportedNumber):
-        precision = min(self._get_significant_digits(self.value), self._get_significant_digits(other))
+        precision = min(
+            self._get_significant_digits(self.value),
+            self._get_significant_digits(other),
+        )
         result = self.value * self._extract_value(other)
         return SignificantDigits(result, precision)
 
@@ -52,12 +69,18 @@ class SignificantDigits:
         return self.__mul__(other)
 
     def __truediv__(self, other):
-        precision = min(self._get_significant_digits(self.value), self._get_significant_digits(other))
+        precision = min(
+            self._get_significant_digits(self.value),
+            self._get_significant_digits(other),
+        )
         result = self.value / self._extract_value(other)
         return SignificantDigits(result, precision)
 
     def __rtruediv__(self, other):
-        precision = min(self._get_significant_digits(self.value), self._get_significant_digits(other))
+        precision = min(
+            self._get_significant_digits(self.value),
+            self._get_significant_digits(other),
+        )
         result = self._extract_value(other) / self.value
         return SignificantDigits(result, precision)
 
@@ -75,11 +98,14 @@ class SignificantDigits:
     def _get_significant_digits(value: SupportedNumber) -> int:
         if isinstance(value, SignificantDigits):
             return value.sig_fig
-        return SignificantDigits._parse_significant_digits(SignificantDigits._extract_value(value))
+        return SignificantDigits._parse_significant_digits(
+            SignificantDigits._extract_value(value)
+        )
 
     @staticmethod
     def _parse_significant_digits(s: str | SupportedNumber) -> int:
         s = str(s)
+        s = s.replace("_", "")  # remove underscores
         if "e" in s or "E" in s:
             significant = re.split(r"[*×]?[eE]", s)
             return len(significant[0].replace(".", ""))

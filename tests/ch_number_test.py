@@ -58,6 +58,7 @@ def test_sub():
     assert r.sig_fig == 3
     assert str(r) == "22.0"
 
+
 def test_mul():
     a = SignificantDigits("1.2434")
     b = SignificantDigits("1.2")

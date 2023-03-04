@@ -18,7 +18,6 @@ from chemistry_lang.ch_ast import (
     Submit,
     ExprStmt,
     Block,
-    Expr,
 )
 from chemistry_lang.ch_error import CHError
 from chemistry_lang.ch_handler import handler

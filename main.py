@@ -225,7 +225,8 @@ def gui():
 
         def redirect_output(self):
             env = interpreter.global_env.assign(
-                "print", NativeWork(lambda x: self.print(interpreter.stringify(x) + "\n"), 1)
+                "print",
+                NativeWork(lambda x: self.print(interpreter.stringify(x) + "\n"), 1),
             ).assign("clear", NativeWork(lambda: self.clear(), 0))
             interpreter.global_env = env
             interpreter.env = env
