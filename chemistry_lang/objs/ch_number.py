@@ -107,6 +107,36 @@ class SignificantDigits:
     def __hash__(self):
         return hash((self.value, self.sig_fig))
 
+    def __abs__(self):
+        return SignificantDigits(abs(self.value), self.sig_fig)
+
+    def __neg__(self):
+        return SignificantDigits(-self.value, self.sig_fig)
+
+    def __pos__(self):
+        return SignificantDigits(+self.value, self.sig_fig)
+
+    def __round__(self, n: int = 0):
+        return SignificantDigits(round(self.value, n), self.sig_fig)
+
+    def __floor__(self):
+        return SignificantDigits(self.value.__floor__(), self.sig_fig)
+
+    def __ceil__(self):
+        return SignificantDigits(self.value.__ceil__(), self.sig_fig)
+
+    def __trunc__(self):
+        return SignificantDigits(self.value.__trunc__(), self.sig_fig)
+
+    def __int__(self):
+        return int(self.value)
+
+    def __float__(self):
+        return float(self.value)
+
+    def __mod__(self, other):
+        return self.value % self._extract_value(other)
+
     @staticmethod
     def _get_decimal_places(value: SupportedNumber) -> int:
         val = SignificantDigits._extract_value(value)
@@ -134,7 +164,7 @@ class SignificantDigits:
             return len(significant[0].replace(".", ""))
 
         if "." not in s:
-            return len(s.rstrip("0"))
+            return len(s.rstrip("0")) or 1  # handle '0'
 
         int_part, decimal_part = s.split(".")
 

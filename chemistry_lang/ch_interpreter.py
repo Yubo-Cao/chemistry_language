@@ -1,3 +1,5 @@
+import inspect
+import math
 from collections.abc import Iterable
 from contextlib import contextmanager
 from decimal import Decimal
@@ -26,6 +28,7 @@ from .ch_ast import (
 from .ch_env import Env
 from .ch_error import CHError
 from .ch_handler import handler
+from .ch_token import *
 from .objs import (
     CHFormula,
     FormulaUnit,
@@ -35,7 +38,6 @@ from .objs import (
     SubmitError,
     NativeWork,
 )
-from .ch_token import *
 
 
 class Interpreter:
@@ -55,12 +57,10 @@ class Interpreter:
         env = (
             Env()
             .assign("attribute_to_evaluate_element", "AtomicMass")
-            .assign("show_balanced_equation", True)
+            .assign("show_balanced_equation", False)
             .assign("print", NativeWork(lambda x: print(Interpreter.stringify(x)), 1))
             .assign("input", NativeWork(input, 1))
         )
-        import math
-        import inspect
 
         def wrap_fn(func):
             def decorator(arg):
@@ -77,6 +77,10 @@ class Interpreter:
         ]:
             env = env.assign(name, NativeWork(wrap_fn(f), 1))
         return env
+
+    def print(self, content):
+        pt = self.env.lookup("print")
+        pt(content)
 
     def reset(self):
         """
@@ -235,7 +239,7 @@ class Interpreter:
         for rxn in node.reaction:
             balanced = rxn.balanced
             if self.env["show_balanced_equation"]:
-                print(balanced)
+                self.print(balanced)
             context.update(balanced.context)
         unit = node.unit
         if isinstance(unit, CHFormula):
@@ -304,7 +308,7 @@ class Interpreter:
             case TokenType.MOD:
                 result = left % right
             case TokenType.CARET | TokenType.MULMUL:
-                result = left**right
+                result = left ** right
             case TokenType.LE:
                 result = left <= right
             case TokenType.LT:

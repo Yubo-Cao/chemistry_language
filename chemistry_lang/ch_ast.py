@@ -83,6 +83,7 @@ class Literal(Expr):
 @dataclass(frozen=True)
 class Call(Expr):
     callee: Expr
+    args: list[Expr]
 
     def __str__(self) -> str:
         return f"{self.callee!s}({', '.join(map(str, self.args))})"
@@ -172,7 +173,7 @@ class Submit(Stmt):
 
 @dataclass(frozen=True)
 class ExprStmt(Stmt):
-    kw: Token
+    kw: Token  # new line token
     expr: Expr
 
     def __str__(self) -> str:

@@ -334,8 +334,8 @@ class Reaction:
             [
                 CHFormula(product.terms, Decimal(str(number)))
                 for product, number in zip(
-                    self.products, simplified_result[len(self.reactants) :]
-                )
+                self.products, simplified_result[len(self.reactants):]
+            )
             ],
         )
         return result
@@ -346,8 +346,8 @@ class Reaction:
             (
                 FormulaUnit([CHFormula(numerator.terms)]),
                 FormulaUnit([CHFormula(denominator.terms)]),
-            ): Decimal(denominator.number)
-            / Decimal(numerator.number)
+            ): CHNumber(Decimal(denominator.number)
+                        / Decimal(numerator.number), 999) # molar ratio has infinite significant digits
             for numerator, denominator in permutations(
                 self.reactants + self.products, 2
             )

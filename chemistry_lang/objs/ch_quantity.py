@@ -1,11 +1,13 @@
 from decimal import Decimal
-from operator import add, mul, truediv, mod
-from typing import Callable
 
-from pint import Unit, Quantity, DimensionalityError
+from pint import Unit, DimensionalityError, Quantity
 
 from chemistry_lang.ch_handler import handler
+from .ch_number import CHNumber
 from .ch_ureg import ureg
+from typing import ForwardRef
+
+SupportedNumber = ForwardRef("CHQuantity") | CHNumber | Decimal | int | float
 
 
 class CHQuantity:
@@ -23,13 +25,21 @@ class CHQuantity:
     before conversion.
     """
 
-    def __init__(self, formula, magnitude: Decimal, unit: Unit):
+    def __init__(self, formula, magnitude: CHNumber, unit: Unit):
         self.formula = formula
         self.magnitude = magnitude
         self.unit = unit
 
     def __repr__(self):
-        return self.__format__("")
+        return f'CHQuantity(formula={self.formula!r}, magnitude={self.magnitude!r}, unit={self.unit!r})'
+
+    def __str__(self):
+        result = [str(self.magnitude)]
+        if self.formula:
+            result.append(str(self.formula))
+        if self.unit and self.unit != ureg.dimensionless:
+            result.append(str(self.unit))
+        return " ".join(result)
 
     def __format__(self, _format_spec: str) -> str:
         return f"{{magnitude}}{{unit}}{{formula}}".format(
@@ -40,88 +50,118 @@ class CHQuantity:
             formula=" " + self.formula.__format__(_format_spec) if self.formula else "",
         )
 
-    def binary_operation(
-        self,
-        other,
-        operator: Callable[[Quantity | Decimal, Quantity | Decimal], Quantity],
-    ) -> tuple[Unit, Decimal]:
-        try:
-            if isinstance(other, CHQuantity):
-                res = operator(self.unit * self.magnitude, other.unit * other.magnitude)
-            elif isinstance(other, Quantity):
-                res = operator(self.unit * self.magnitude, other)
-            elif (
-                isinstance(other, int)
-                or isinstance(other, float)
-                or isinstance(other, Decimal)
-            ):
-                res = operator(self.magnitude, other) * self.unit
-            else:
-                raise TypeError(f"Cannot perform operation with {type(other)}")
-            unit = res.units
-            magnitude = res.magnitude
-        except DimensionalityError:
-            raise handler.error(f"Cannot {operator.__name__} {self} and {other}")
-        return unit, magnitude
-
-    def __add__(self, other):
-        unit, mag = self.binary_operation(other, add)
+    def __add__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        result = self.quantity + other.quantity
         return CHQuantity(
-            self.formula + other.formula
-            if isinstance(other, CHQuantity)
-            else self.formula,
-            mag,
-            unit,
+            self.formula + other.formula if other.formula else self.formula,
+            CHNumber(result.magnitude),
+            result.units,
         )
 
-    __radd__ = __add__
+    def __radd__(self, other: SupportedNumber):
+        return self + other
 
-    def __sub__(self, other):
-        return self + (-other)
-
-    def __rsub__(self, other):
-        return -self + other
-
-    def __mul__(self, other):
-        unit, mag = self.binary_operation(other, mul)
+    def __sub__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        result = self.quantity - other.quantity
         return CHQuantity(
-            self.formula * other.formula
-            if isinstance(other, CHQuantity)
-            else self.formula,
-            mag,
-            unit,
+            self.formula - other.formula if other.formula else self.formula,
+            CHNumber(result.magnitude),
+            result.units,
         )
 
-    __rmul__ = __mul__
+    @staticmethod
+    def ensure_quantity(other: SupportedNumber | Decimal | int | float) -> "CHQuantity":
+        if isinstance(other, CHQuantity):
+            return other
+        elif isinstance(other, (int, float, Decimal)):
+            return CHQuantity(None, CHNumber(other), ureg.dimensionless)
+        elif isinstance(other, CHNumber):
+            other = CHQuantity(None, other, ureg.dimensionless)
+        else:
+            raise handler.error(f"Cannot convert {other} to CHQuantity")
+        return other
 
-    def __truediv__(self, other):
-        unit, mag = self.binary_operation(other, truediv)
+    def __rsub__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        result = other.quantity - self.quantity
         return CHQuantity(
-            self.formula / other.formula
-            if isinstance(other, CHQuantity)
-            else self.formula,
-            mag,
-            unit,
+            other.formula - self.formula if other.formula else self.formula,
+            CHNumber(result.magnitude),
+            result.units,
         )
 
-    def __rtruediv__(self, other):
-        unit, mag = self.binary_operation(other, lambda a, b: b / a)
+    def __truediv__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        result = self.quantity / other.quantity
         return CHQuantity(
-            self.formula / other.formula
-            if isinstance(other, CHQuantity)
-            else self.formula,
-            mag,
-            unit,
+            self.formula / other.formula if other.formula else self.formula,
+            CHNumber(result.magnitude),
+            result.units,
         )
 
-    def __pow__(self, other):
-        unit, mag = self.binary_operation(other, pow)
+    def __rtruediv__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        result = other.quantity / self.quantity
         return CHQuantity(
-            self.formula**other.formula
-            if isinstance(other, CHQuantity)
-            else self.formula,
-            mag,
-            unit,
+            other.formula / self.formula if other.formula else self.formula,
+            CHNumber(result.magnitude),
+            result.units,
+        )
+
+    def __mul__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        result = self.quantity * other.quantity
+        return CHQuantity(
+            self.formula * other.formula if other.formula else self.formula,
+            CHNumber(result.magnitude),
+            result.units,
+        )
+
+    def __rmul__(self, other: SupportedNumber):
+        return self * other
+
+    def __mod__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        result = self.quantity % other.quantity
+        return CHQuantity(
+            self.formula - other.formula if other.formula else self.formula,
+            CHNumber(result.magnitude),
+            result.units,
+        )
+
+    def __eq__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        return self.quantity == other.quantity
+
+    def __ne__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        return self.quantity != other.quantity
+
+    def __lt__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        return self.quantity < other.quantity
+
+    def __le__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        return self.quantity <= other.quantity
+
+    def __gt__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        return self.quantity > other.quantity
+
+    def __ge__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        return self.quantity >= other.quantity
+
+    def __pow__(self, other: SupportedNumber):
+        other = self.ensure_quantity(other)
+        result = self.quantity ** other.quantity
+        return CHQuantity(
+            self.formula ** other.formula if other.formula else self.formula,
+            CHNumber(result.magnitude),
+            result.units,
         )
 
     def __bool__(self):
@@ -139,44 +179,16 @@ class CHQuantity:
     def __invert__(self):
         raise handler.error("Bad operand type for unary ~: 'CHQuantity'")
 
-    def extract_magnitude(self, other):
-        msg = f"Cannot compare {self} and {other}"
-        if isinstance(other, CHQuantity):
-            if self.unit != other.unit:
-                raise handler.error(msg)
-            elif self.formula != other.formula:
-                raise handler.error(msg)
-            return other.magnitude
-        elif other.__class__ not in {int, float, Decimal}:
-            raise handler.error(msg)
-        return other
-
-    def __ge__(self, other):
-        return self.magnitude >= self.extract_magnitude(other)
-
-    def __le__(self, other):
-        return self.magnitude <= self.extract_magnitude(other)
-
-    def __lt__(self, other):
-        return self.magnitude < self.extract_magnitude(other)
-
-    def __gt__(self, other):
-        return self.magnitude > self.extract_magnitude(other)
-
-    def __ne__(self, other):
-        return self.magnitude != self.extract_magnitude(other)
-
-    def __eq__(self, other):
-        return self.magnitude == self.extract_magnitude(other)
-
-    def __mod__(self, other):
-        unit, mag = self.binary_operation(other, mod)
-        return CHQuantity(self.formula, mag, unit)
+    def __int__(self):
+        if self.unit != ureg.dimensionless:
+            raise handler.error(f"Cannot convert {self.unit} to int")
+        return int(self.magnitude)
 
     def to(self, target: Unit, reaction_context):
         """
         Convert the quantity to the given unit.
         """
+
         from .ch_chemistry import FormulaUnit  # hack to avoid circular import
 
         magnitude = self.magnitude
@@ -184,11 +196,11 @@ class CHQuantity:
         if isinstance(target, Unit) and self.unit != target:
             try:
                 if self.formula.formulas:
-                    magnitude = (self.magnitude * self.unit).to(
+                    magnitude = self.quantity.to(
                         target, self.formula.context
                     )  # formula-less has no context
                 else:
-                    magnitude = (self.magnitude * self.unit).to(target)
+                    magnitude = self.quantity.to(target)
                 magnitude = Decimal(magnitude.magnitude)
                 unit = target
             except DimensionalityError:
@@ -205,4 +217,4 @@ class CHQuantity:
 
     @property
     def quantity(self):
-        return self.magnitude * self.unit
+        return Quantity(self.magnitude, self.unit)
