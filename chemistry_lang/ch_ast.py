@@ -1,11 +1,11 @@
-from dataclasses import field
+from dataclasses import field, dataclass
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any
 
 from pint import Unit
 
-from chemistry_lang.ch_objs import FormulaUnit, Reaction
-from chemistry_lang.ch_token import Token, TokenType
+from .objs import FormulaUnit, Reaction
+from .ch_token import Token, TokenType
 
 
 class Expr:
@@ -14,7 +14,8 @@ class Expr:
     """
 
 
-class Write(NamedTuple):
+@dataclass(frozen=True)
+class Write(Expr):
     expr: Expr
     to: Token
     path: Path
@@ -23,7 +24,8 @@ class Write(NamedTuple):
         return f"{self.expr!s} -> {self.path!s}"
 
 
-class Interval(NamedTuple):
+@dataclass(frozen=True)
+class Interval(Expr):
     start: Any
     dots: Token
     end: Any
@@ -32,31 +34,35 @@ class Interval(NamedTuple):
         return f"{self.start!s} ... {self.end!s}"
 
 
-class Binary(NamedTuple):
-    left: "Unary"
+@dataclass(frozen=True)
+class Binary(Expr):
+    left: Expr
     op: TokenType
-    right: "Unary"
+    right: Expr
 
     def __str__(self):
         return f"{self.left!s} {self.op.value} {self.right!s}"
 
 
-class Unary(NamedTuple):
+@dataclass(frozen=True)
+class Unary(Expr):
     op: Token
-    right: "Unary"
+    right: Expr
 
     def __str__(self):
         return f"{self.op}{self.right}"
 
 
-class Grouping(NamedTuple):
+@dataclass(frozen=True)
+class Grouping(Expr):
     expr: Expr
 
     def __str__(self):
         return f"({self.expr})"
 
 
-class Conversion(NamedTuple):
+@dataclass(frozen=True)
+class Conversion(Expr):
     value: Expr
     to: Token
     unit: Unit | FormulaUnit
@@ -66,29 +72,32 @@ class Conversion(NamedTuple):
         return f"{self.value!s} -> {self.unit!s}"
 
 
-class Literal(NamedTuple):
+@dataclass(frozen=True)
+class Literal(Expr):
     value: Any
 
     def __str__(self) -> str:
         return str(self.value)
 
 
-class Call(NamedTuple):
-    callee: Expr  # Specfically, it evaluate to a CHWork
-    args: list[str]
+@dataclass(frozen=True)
+class Call(Expr):
+    callee: Expr
 
     def __str__(self) -> str:
         return f"{self.callee!s}({', '.join(map(str, self.args))})"
 
 
-class Variable(NamedTuple):
+@dataclass(frozen=True)
+class Variable(Expr):
     name: str
 
     def __str__(self) -> str:
         return self.name
 
 
-class Assign(NamedTuple):
+@dataclass(frozen=True)
+class Assign(Expr):
     name: str
     val: Any
 
@@ -104,18 +113,26 @@ class Assign(NamedTuple):
 # is presented, as follows
 
 
-class Block(NamedTuple):
-    body: tuple[Expr]
+class Stmt:
+    """
+    Abstract base class for statement.
+    """
+
+
+@dataclass(frozen=True)
+class Block(Stmt):
+    body: tuple[Stmt, ...]
 
     def __str__(self) -> str:
         return "\n" + "\n".join(map(lambda stmt: " " * 4 + str(stmt), self.body)) + "\n"
 
 
-class Exam(NamedTuple):
+@dataclass(frozen=True)
+class Exam(Stmt):
     kw: Token
     cond: Expr
-    pass_stmt: Block | Expr
-    fail_stmt: Block | Expr
+    pass_stmt: Block | Stmt
+    fail_stmt: Block | Stmt
 
     def __str__(self) -> str:
         return f"exam {self.cond!s} {self.pass_stmt!s}" + (
@@ -123,7 +140,8 @@ class Exam(NamedTuple):
         )
 
 
-class During(NamedTuple):
+@dataclass(frozen=True)
+class During(Stmt):
     kw: Token
     cond: Expr
     body: Block | Expr
@@ -132,7 +150,8 @@ class During(NamedTuple):
         return f"during {self.cond!s} {self.body!s}"
 
 
-class Work(NamedTuple):
+@dataclass(frozen=True)
+class Work(Stmt):
     kw: Token
     identifier: str
     params: list[str]
@@ -142,7 +161,8 @@ class Work(NamedTuple):
         return f"work {self.identifier!s}({', '.join(self.params)}) {self.body!s}"
 
 
-class Submit(NamedTuple):
+@dataclass(frozen=True)
+class Submit(Stmt):
     kw: Token
     expr: Expr
 
@@ -150,7 +170,8 @@ class Submit(NamedTuple):
         return f"submit {self.expr!s}"
 
 
-class ExprStmt(NamedTuple):
+@dataclass(frozen=True)
+class ExprStmt(Stmt):
     kw: Token
     expr: Expr
 
@@ -158,7 +179,8 @@ class ExprStmt(NamedTuple):
         return str(self.expr)
 
 
-class Redo(NamedTuple):
+@dataclass(frozen=True)
+class Redo(Stmt):
     kw: Token
     identifier: str
     interval: Interval

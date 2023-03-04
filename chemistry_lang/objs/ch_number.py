@@ -4,7 +4,7 @@ from typing import Any, ForwardRef
 
 from pint import Quantity
 
-from .ch_handler import handler
+from chemistry_lang.ch_handler import handler
 
 SupportedNumber = int | float | Decimal | Quantity | ForwardRef("SignificantDigits")
 
@@ -85,7 +85,9 @@ class SignificantDigits:
         return SignificantDigits(result, precision)
 
     def __eq__(self, other):
-        return self.value == self._extract_value(other) and self.sig_fig == self._get_significant_digits(other)
+        return self.value == self._extract_value(
+            other
+        ) and self.sig_fig == self._get_significant_digits(other)
 
     def __ne__(self, other):
         return not self.__eq__(other)

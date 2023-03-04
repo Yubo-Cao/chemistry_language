@@ -5,11 +5,9 @@ from typing import Any, Callable, Literal, cast, Optional
 
 from .ch_error import CHError
 from .ch_handler import handler
-from .ch_number import CHNumber
-from .ch_objs import Element, CHPartialFormula, CHFormula
+from .objs import CHNumber, CHPartialFormula, CHFormula, Element, ureg
 from .ch_periodic_table import periodic_table
 from .ch_token import Token, TokenType
-from .ch_ureg import ureg
 
 
 class Tokenizer:

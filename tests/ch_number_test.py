@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from chemistry_lang.ch_number import SignificantDigits
+from chemistry_lang.objs.ch_number import SignificantDigits
 
 
 def test_create():

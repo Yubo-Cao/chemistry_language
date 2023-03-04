@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from chemistry_lang.ch_ast import (
+from .ch_ast import (
     Assign,
     Binary,
     Call,
@@ -19,11 +19,10 @@ from chemistry_lang.ch_ast import (
     ExprStmt,
     Block,
 )
-from chemistry_lang.ch_error import CHError
-from chemistry_lang.ch_handler import handler
-from chemistry_lang.ch_objs import CHQuantity, CHString, FormulaUnit, Reaction
-from chemistry_lang.ch_token import Token, TokenType
-from chemistry_lang.ch_ureg import ureg
+from .ch_error import CHError
+from .ch_handler import handler
+from .objs import FormulaUnit, Reaction, CHQuantity, CHString, ureg
+from .ch_token import Token, TokenType
 
 
 class Parser:
@@ -137,7 +136,7 @@ class Parser:
         self.opt_sep()
         return During(kw, cond, body)
 
-    def exam(self):
+    def exam(self) -> Exam:
         kw = self.expect("Expect 'exam'", TokenType.EXAM)
         cond = self.expr()
         body = self.be()
@@ -209,10 +208,10 @@ class Parser:
             left = Assign(left.name, rvalue)
         return left
 
-    def binary_parse(self, nonterminal, *operator):
-        left = nonterminal()
+    def binary_parse(self, non_terminal, *operator):
+        left = non_terminal()
         while op := self.match(*operator):
-            right = nonterminal()
+            right = non_terminal()
             left = Binary(left, op.type, right)
         return left
 
@@ -286,7 +285,7 @@ class Parser:
     def unary(self):
         if op := self.match(TokenType.ADD, TokenType.SUB, TokenType.INV, TokenType.NOT):
             expr = self.unary()
-            return Unary(op.type, expr)
+            return Unary(op, expr)
         return self.exp()
 
     def exp(self):
@@ -390,7 +389,8 @@ class Parser:
             raise handler.error(msg, self.peek)
         return self.advance()
 
-    def error(self, msg: str, token: Token) -> None:
+    @staticmethod
+    def error(msg: str, token: Token) -> None:
         return handler.error(msg, token)
 
 

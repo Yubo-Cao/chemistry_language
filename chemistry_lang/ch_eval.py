@@ -1,9 +1,9 @@
 from typing import Any
 
-from chemistry_lang.ch_handler import handler
-from chemistry_lang.ch_interpreter import interpreter
-from chemistry_lang.ch_parser import parse
-from chemistry_lang.ch_tokenizer import tokenize
+from .ch_handler import handler
+from .ch_interpreter import interpreter
+from .ch_parser import parse
+from .ch_tokenizer import tokenize
 
 
 def evaluate(code) -> Any:

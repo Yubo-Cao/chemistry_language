@@ -1,6 +1,5 @@
 from collections.abc import Callable
 
-from chemistry_lang.ch_ast import Work
 from chemistry_lang.ch_env import Env
 
 
@@ -31,9 +30,9 @@ class NativeWork:
 
 
 class CHWork:
-    def __init__(self, closure, declaration: Work):
-        self.closure = closure
-        self.declaration = declaration
+    def __init__(self, closure, declaration):
+        self.closure = closure  # Env
+        self.declaration = declaration  # AST node
 
     @property
     def arity(self):

@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from chemistry_lang import evaluate, interpreter
 from chemistry_lang.ch_handler import logger
-from chemistry_lang.ch_work import NativeWork
+from chemistry_lang.objs.ch_work import NativeWork
 
 
 def parse():
