@@ -1,179 +1,110 @@
+import re
 from decimal import Decimal
+from typing import Any, ForwardRef
 
-from chemistry_lang.ch_handler import handler
+from pint import Quantity
+
+from .ch_handler import handler
+
+SupportedNumber = int | float | Decimal | Quantity | ForwardRef("SignificantDigits")
 
 
-class CHNumber:
-    """
-    This number following the significant figures rules, see this as reference:
-    https://chem.libretexts.org/Bookshelves/Analytical_Chemistry/Supplemental_Modules_(Analytical_Chemistry)/Quantifying_Nature/Significant_Digits
-
-    """
-
-    @property
-    def sig_figs(self):
-        return self._sig_figs
-
-    @property
-    def decimal_digits(self):
-        if self.value.as_tuple().exponent == 0:
-            return 0
-        else:
-            _, digits, exp = self.value.as_tuple()
-            return self.sig_figs - (len(digits) + exp)
-
-    @decimal_digits.setter
-    def decimal_digits(self, value):
-        _, digits, exp = self.value.as_tuple()
-        self._sig_figs = (len(digits) + exp) + value
-
-    def __init__(self, value: str | Decimal | int | float, sig_figs: int | float = -1):
-        if isinstance(value, Decimal) and sig_figs != -1:
-            self.value = value
-            if sig_figs != -1:
-                self._sig_figs = sig_figs
-            else:
-                self._sig_figs = self.get_sig_figs(value)
-        elif isinstance(value, str):
+class SignificantDigits:
+    def __init__(self, value: Any, sig_fig: int = -1):
+        if isinstance(value, str):
             self.value = Decimal(value)
-            self._sig_figs = (
-                self.get_sig_figs(self.value) if sig_figs == -1 else sig_figs
-            )
-        elif isinstance(value, int) or isinstance(value, float):
-            self.value = Decimal(value)
-            self._sig_figs = self.guess_sig_figs(value) if sig_figs == -1 else sig_figs
         else:
-            raise ValueError("Can't create CHNumber from " + str(type(value)))
+            self.value: Decimal = Decimal(self._extract_value(value))
+        self.sig_fig = sig_fig if sig_fig != -1 else self._parse_significant_digits(value)
 
-    def get_sig_figs(self, value: Decimal):
-        if value.as_tuple().exponent >= 0:
-            # In such case, all trailing zeros are not significant
-            return len(
-                list(dropwhile(lambda c: c == 0, reversed(value.as_tuple().digits)))
-            )
-        else:
-            return len(value.as_tuple().digits)
+    def __str__(self):
+        if self.sig_fig == 0:
+            return "NA"
+        return f"{self.value:.{self.sig_fig}g}"
 
     def __repr__(self):
-        return self.__format__(None)
+        return f"SignificantDigits({self.value}, {self.sig_fig})"
 
-    def __format__(self, _format_spec: str) -> str:
-        rounded = self.value.quantize(Decimal("1") / Decimal(10) ** self.decimal_digits)
-        result = str(rounded)
-        if "." in result or result[-1] != "0":
-            return result
-        else:
-            exp = self.value.adjusted()
-            rounded = self.value / Decimal(10) ** exp
-            base = f"{{:0.{self.decimal_digits}f}}".format(rounded)
-            match _format_spec:
-                case "L":
-                    return base + rf" \times 10^{{{exp}}}"
-                case _:  # "D"
-                    return base + " * 10 ** " + str(exp)
+    def __add__(self, other: SupportedNumber):
+        precision = min(self._get_decimal_places(self.value), self._get_decimal_places(other))
+        result = self.value + self._extract_value(other)
+        return SignificantDigits(result, self._parse_significant_digits(f'{result:.0{precision}f}'))
 
-    def guess_decimal_digits(self, val):
-        try:
-            val = Decimal(val)
-            return max(-val.as_tuple().exponent, 0)
-        except InvalidOperation:
-            try:
-                return len(str(val).split(".")[1])
-            except IndexError:
-                return 0
-
-    def guess_sig_figs(self, val):
-        try:
-            val = Decimal(val)
-            return self.get_sig_figs(val)
-        except InvalidOperation:
-            val = str(val)
-            if "." in val:
-                return len(list(dropwhile(lambda c: c == "0" or c == ".", val)))
-            else:
-                return len(val.strip("0"))
-
-    def __add__(self, other):
-        if isinstance(other, CHNumber):
-            num = CHNumber(self.value + other.value, 0)
-            num.decimal_digits = min(self.decimal_digits, other.decimal_digits)
-            return num
-        elif (
-            isinstance(other, int)
-            or isinstance(other, Decimal)
-            or isinstance(other, float)
-        ):
-            num = CHNumber(self.value + other, 0)
-            num.decimal_digits = min(
-                self.decimal_digits, self.guess_decimal_digits(other)
-            )
-            return num
-        else:
-            raise handler.error("Can't add CHNumber to " + str(type(other)) + ".")
-
-    def __radd__(self, other):
+    def __radd__(self, other: SupportedNumber):
         return self.__add__(other)
 
-    def __sub__(self, other):
-        return self + (-other)
+    def __sub__(self, other: SupportedNumber):
+        precision = min(self._get_decimal_places(self.value), self._get_decimal_places(other))
+        result = self.value - self._extract_value(other)
+        return SignificantDigits(result, self._parse_significant_digits(f'{result:.0{precision}f}'))
 
-    def __rsub__(self, other):
-        return -self + other
+    def __rsub__(self, other: SupportedNumber):
+        precision = min(self._get_decimal_places(self.value), self._get_decimal_places(other))
+        result = self._extract_value(other) - self.value
+        return SignificantDigits(result, self._parse_significant_digits(f'{result:.0{precision}f}'))
 
-    def __mul__(self, other):
-        if isinstance(other, CHNumber):
-            num = CHNumber(self.value * other.value, min(self.sig_figs, other.sig_figs))
-            return num
-        elif (
-            isinstance(other, int)
-            or isinstance(other, Decimal)
-            or isinstance(other, float)
-        ):
-            num = CHNumber(
-                self.value * other, min(self.sig_figs, self.guess_sig_figs(other))
-            )
-            return num
-        else:
-            raise handler.error("Can only multiply CHNumber to CHNumber")
+    def __mul__(self, other: SupportedNumber):
+        precision = min(self._get_significant_digits(self.value), self._get_significant_digits(other))
+        result = self.value * self._extract_value(other)
+        return SignificantDigits(result, precision)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: SupportedNumber):
         return self.__mul__(other)
 
     def __truediv__(self, other):
-        if isinstance(other, CHNumber):
-            num = CHNumber(self.value / other.value, min(self.sig_figs, other.sig_figs))
-            return num
-        elif (
-            isinstance(other, int)
-            or isinstance(other, Decimal)
-            or isinstance(other, float)
-        ):
-            num = CHNumber(
-                self.value / other, min(self.sig_figs, self.guess_decimal_digits(other))
-            )
-            return num
-        else:
-            raise handler.error("Can only divide CHNumber to CHNumber")
+        precision = min(self._get_significant_digits(self.value), self._get_significant_digits(other))
+        result = self.value / self._extract_value(other)
+        return SignificantDigits(result, precision)
 
     def __rtruediv__(self, other):
-        return (1 / self) * other
+        precision = min(self._get_significant_digits(self.value), self._get_significant_digits(other))
+        result = self._extract_value(other) / self.value
+        return SignificantDigits(result, precision)
 
-    def __abs__(self):
-        return CHNumber(abs(self.value), self.sig_figs)
+    @staticmethod
+    def _get_decimal_places(value: SupportedNumber) -> int:
+        val = SignificantDigits._extract_value(value)
+        return -val.as_tuple().exponent
 
-    def __eq__(self, other):
-        if isinstance(other, CHNumber):
-            return self.value == other.value
-        return self.value == other
+    @staticmethod
+    def _get_digit(value: SupportedNumber) -> int:
+        val = SignificantDigits._extract_value(value)
+        return max(len(val.as_tuple().digits) + val.as_tuple().exponent, 0)
 
-    def __hash__(self):
-        return hash((self.value, self.sig_figs))
+    @staticmethod
+    def _get_significant_digits(value: SupportedNumber) -> int:
+        if isinstance(value, SignificantDigits):
+            return value.sig_fig
+        return SignificantDigits._parse_significant_digits(SignificantDigits._extract_value(value))
 
-    def __neg__(self):
-        return CHNumber(-self.value, self.sig_figs)
+    @staticmethod
+    def _parse_significant_digits(s: str | SupportedNumber) -> int:
+        s = str(s)
+        if "e" in s or "E" in s:
+            significant = re.split(r"[*×]?[eE]", s)
+            return len(significant[0].replace(".", ""))
 
-    def __pos__(self):
-        return CHNumber(+self.value, self.sig_figs)
+        if "." not in s:
+            return len(s.rstrip("0"))
 
-    def __bool__(self):
-        return self.value != 0
+        int_part, decimal_part = s.split(".")
+
+        if int_part == "0":
+            return len(decimal_part.lstrip("0"))
+        else:
+            return len(int_part.lstrip("0")) + len(decimal_part)
+
+    @staticmethod
+    def _extract_value(other: SupportedNumber) -> Decimal:
+        match other:
+            case SignificantDigits():
+                other_value = other.value
+            case int() | float():
+                other_value = Decimal(str(other))
+            case Decimal():
+                other_value = other
+            case Quantity():
+                other_value = other.magnitude
+            case _:
+                raise handler.error(f"Can't extract value from {other}")
+        return other_value
