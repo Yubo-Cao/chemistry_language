@@ -1,15 +1,15 @@
-from decimal import Decimal
 from functools import partial, cached_property
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Callable, Literal, cast, Optional
 
-from chemistry_lang.ch_error import CHError
-from chemistry_lang.ch_handler import handler
-from chemistry_lang.ch_objs import Element, CHPartialFormula, CHFormula
-from chemistry_lang.ch_periodic_table import periodic_table
-from chemistry_lang.ch_token import Token, TokenType
-from chemistry_lang.ch_ureg import ureg
+from .ch_error import CHError
+from .ch_handler import handler
+from .ch_number import CHNumber
+from .ch_objs import Element, CHPartialFormula, CHFormula
+from .ch_periodic_table import periodic_table
+from .ch_token import Token, TokenType
+from .ch_ureg import ureg
 
 
 class Tokenizer:
@@ -360,7 +360,7 @@ class Tokenizer:
         # Decimal handles float/integer very well. So we piggyback on it.
         num = self.to_be_scanned[self.start : self.current]
         try:
-            return Decimal(num) if num else ""
+            return CHNumber(num) if num else ""
         except CHError:
             handler.error("Invalid number {}".format(num), self.line)
 
@@ -382,7 +382,8 @@ class Tokenizer:
         self.line += 1
         self.start_of_line = True
 
-    def is_path_char(self, c: str):
+    @staticmethod
+    def is_path_char(c: str):
         return not c.isspace() and c not in '<>"/|?*(){}'
 
     def path(self) -> bool:
@@ -395,7 +396,7 @@ class Tokenizer:
             )
             return True
         else:
-            self.skip_to(self.is_path_char)
+            self.skip_to(predicate=self.is_path_char)
             end = self.current
 
             # We require a path to contain either, a drive name, e.g., C:, or at least one slash, e.g., \
@@ -421,7 +422,9 @@ class Tokenizer:
         else:
             return self.to_be_scanned[self.start : self.current]
 
-    def script(self, start: Literal["_", "^"] = "_", default: Decimal = None):
+    def script(
+        self, start: Literal["_", "^"] = "_", default: CHNumber = None
+    ) -> CHNumber | str:
         if self.match(start):
             self.start += 1
             if self.match("{"):
@@ -443,9 +446,9 @@ class Tokenizer:
         if not name:
             return None
         self.proceed()
-        subscript = self.script(default=Decimal(1))
+        subscript = self.script(default=CHNumber("1"))
         self.proceed()
-        superscript = self.script("^", default=Decimal(0))
+        superscript = self.script("^", default=CHNumber("0"))
         self.proceed()
         return Element(name, subscript, superscript)
 
@@ -481,7 +484,7 @@ class Tokenizer:
                     "Expect number after parenthesis at line {line}", self.script
                 )
                 self.proceed()
-                superscript = self.script("^", default=Decimal(0))
+                superscript = self.script("^", default=CHNumber("0"))
                 elements.append(
                     CHPartialFormula(tuple(formula), subscript, superscript)
                 )
