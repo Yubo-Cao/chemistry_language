@@ -92,6 +92,18 @@ class SignificantDigits:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __lt__(self, other):
+        return self.value < self._extract_value(other)
+
+    def __le__(self, other):
+        return self.value <= self._extract_value(other)
+
+    def __gt__(self, other):
+        return self.value > self._extract_value(other)
+
+    def __ge__(self, other):
+        return self.value >= self._extract_value(other)
+
     def __hash__(self):
         return hash((self.value, self.sig_fig))
 
