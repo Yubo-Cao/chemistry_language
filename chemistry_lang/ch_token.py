@@ -1,7 +1,5 @@
-from collections import namedtuple
 from enum import Enum
-
-Token = namedtuple("Token", ["type", "val", "line", "attr"])
+from typing import NamedTuple, Any
 
 
 class TokenType(Enum):
@@ -79,3 +77,10 @@ class TokenType(Enum):
 
     INDENT = "indent"
     DEDENT = "dedent"
+
+
+class Token(NamedTuple):
+    type: TokenType
+    val: Any = None
+    line: int = 1
+    attr: Any = None
