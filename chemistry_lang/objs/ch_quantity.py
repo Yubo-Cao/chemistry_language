@@ -157,12 +157,14 @@ class CHQuantity:
 
     def __pow__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        result = self.quantity ** other.quantity
-        return CHQuantity(
-            self.formula ** other.formula if other.formula else self.formula,
-            CHNumber(result.magnitude),
-            result.units,
-        )
+        if not other.unit == ureg.dimensionless:
+            raise handler.error(f"Cannot raise to power {other.unit}")
+        if (int(other.magnitude) - other.magnitude) >= 0.0001:  # ε
+            raise handler.error(f"Cannot raise to power {other.magnitude}")
+        result = 1
+        for _ in range(int(other.magnitude)):
+            result *= self
+        return result
 
     def __bool__(self):
         return bool(self.magnitude)
@@ -183,6 +185,11 @@ class CHQuantity:
         if self.unit != ureg.dimensionless:
             raise handler.error(f"Cannot convert {self.unit} to int")
         return int(self.magnitude)
+
+    def __float__(self):
+        if self.unit != ureg.dimensionless:
+            raise handler.error(f"Cannot convert {self.unit} to float")
+        return float(self.magnitude)
 
     def to(self, target: Unit, reaction_context):
         """

@@ -51,8 +51,9 @@ class EvalDecimal:
         try:
             if isinstance(value, CHNumber):
                 value = value.value
+            print(type(value))
             return Decimal(value)
-        except (CHError, InvalidOperation):
+        except (CHError, InvalidOperation) as e:
             raise handler.error("Invalid type for property %s" % self.name)
 
 

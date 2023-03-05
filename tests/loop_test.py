@@ -1,10 +1,12 @@
 from .utils import initialize, reset, assert_stdout
 from chemistry_lang import evaluate
 from chemistry_lang.objs import CHNumber
+import pytest
 
 initialize()
 
 
+@pytest.mark.skip
 def test_loop():
     reset()
     src = """

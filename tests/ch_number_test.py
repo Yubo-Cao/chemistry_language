@@ -74,3 +74,11 @@ def test_mul():
     assert r.value == Decimal("1.49208")
     assert r.sig_fig == 2
     assert str(r) == "1.5"
+
+
+def test_func():
+    from math import log
+
+    a = SignificantDigits("1.2434")
+    r = log(a)
+    assert r == log(1.2434)

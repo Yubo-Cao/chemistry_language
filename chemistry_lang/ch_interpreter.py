@@ -37,6 +37,7 @@ from .objs import (
     CHWork,
     SubmitError,
     NativeWork,
+    CHNumber
 )
 
 
@@ -65,8 +66,9 @@ class Interpreter:
         def wrap_fn(func):
             def decorator(arg):
                 if isinstance(arg, CHQuantity):
-                    arg = arg.magnitude
-                return CHQuantity(arg.formula, func(arg), arg.unit)
+                    return CHQuantity(arg.formula, func(arg), arg.unit)
+                elif isinstance(arg, CHNumber):
+                    return CHNumber(func(arg), arg.sig_fig)
 
             return decorator
 
