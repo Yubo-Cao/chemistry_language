@@ -91,7 +91,8 @@ class Element:
 
 class CHFormula:
     """
-    This class represents a chemical formula in the chemistry language
+    This class represents a chemical formula in the chemistry language. For example,
+    1 NaCl, 2 H6(PO4)2, 3 H2O, etc.
     """
 
     terms: tuple[Element, ...]
@@ -172,7 +173,8 @@ class CHFormula:
 
 class CHPartialFormula(CHFormula):
     """
-    This class represents a partial chemical formula in the chemistry language
+    This class represents a partial chemical formula. For example,
+    (PO4)2, (H2O)3, etc.
     """
 
     terms: tuple[CHFormula, ...]
@@ -200,7 +202,7 @@ class CHPartialFormula(CHFormula):
 
 class FormulaUnit:
     """
-    This class represents a formula unit in the chemistry language
+    This class represents a formula unit in the chemistry language.
     """
 
     def __init__(self, formula: Iterable[CHFormula]):
