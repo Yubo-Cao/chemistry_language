@@ -2,7 +2,6 @@ import inspect
 import math
 from collections.abc import Iterable
 from contextlib import contextmanager
-from decimal import Decimal
 from functools import singledispatchmethod
 from typing import NoReturn
 
@@ -231,7 +230,7 @@ class Interpreter:
         unit = tmp.unit
         formula = tmp.formula
         return (
-            CHQuantity(formula, Decimal(i), unit)
+            CHQuantity(formula, CHNumber(i), unit)
             for i in range(int(start.magnitude), int(end.magnitude))
         )
 

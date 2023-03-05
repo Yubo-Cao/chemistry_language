@@ -12,17 +12,7 @@ SupportedNumber = ForwardRef("CHQuantity") | CHNumber | Decimal | int | float
 
 class CHQuantity:
     """
-    This quantity shall process the following:
-    - context: pint.Context: the context in which the quantity is used, i.e., the reaction
-    - formula: ch_ast.Reaction: the formula of the quantity
-    - unit: pint.Unit: the unit of the quantity, pint
-    - magnitude: Decimal: the magnitude of the quantity.
-
-    The quantity object shall be able to do conversion between reactions, simply by
-    calling to(Formula) and to(Unit) methods.
-
-    It acts as a wrapper around quantity object. But it adds extra check of formula
-    before conversion.
+    A quantity with a formula and a unit.
     """
 
     def __init__(self, formula, magnitude: CHNumber, unit: Unit):
