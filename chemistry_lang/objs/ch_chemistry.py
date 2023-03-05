@@ -63,35 +63,30 @@ class Element:
     """
 
     symbol: str
-    # infinite sig figs, so we use Decimal
     number: Decimal = EvalDecimal("number")
-    charge: Decimal = EvalDecimal("charge")
 
-    def __init__(self, symbol, number=Decimal(1), charge=Decimal(0)):
+    def __init__(self, symbol, number=Decimal(1)):
         self.symbol = symbol
         self.number = number
-        self.charge = charge
 
     def __eq__(self, other):
         return (
             self.symbol == other.symbol
             and self.number == other.number
-            and self.charge == other.charge
         )
 
     def __hash__(self):
-        return hash((self.symbol, self.number, self.charge))
+        return hash((self.symbol, self.number))
 
     def __str__(self):
         sub = "_{%s}" % self.number if self.number != 1 else ""
-        sup = "^{%s}" % self.charge if self.charge != 0 else ""
-        return f"{self.symbol}{sub}{sup}"
+        return f"{self.symbol}{sub}"
 
-    def __getattr__(self, item):
+    def __getattr__(self, key: str):
         try:
-            return periodic_table.get(self.symbol).get(item)
+            return periodic_table.get(self.symbol).get(key)
         except KeyError:
-            raise AttributeError("'Element' object has no attribute '%s'" % item)
+            raise AttributeError("'Element' object has no attribute '%s'" % key)
 
 
 class CHFormula:
@@ -348,7 +343,7 @@ class Reaction:
                 FormulaUnit([CHFormula(numerator.terms)]),
                 FormulaUnit([CHFormula(denominator.terms)]),
             ): CHNumber(Decimal(denominator.number)
-                        / Decimal(numerator.number), 999) # molar ratio has infinite significant digits
+                        / Decimal(numerator.number), 999)  # molar ratio has infinite significant digits
             for numerator, denominator in permutations(
                 self.reactants + self.products, 2
             )
