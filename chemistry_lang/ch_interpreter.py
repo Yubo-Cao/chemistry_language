@@ -58,7 +58,7 @@ class Interpreter:
             Env()
             .assign("attribute_to_evaluate_element", "AtomicMass")
             .assign("show_balanced_equation", False)
-            .assign("print", NativeWork(lambda x: print(Interpreter.stringify(x)), 1))
+            .assign("print", NativeWork(lambda x: [print(Interpreter.stringify(x)), x][1], 1))
             .assign("input", NativeWork(input, 1))
         )
 
@@ -313,7 +313,7 @@ class Interpreter:
             case TokenType.MOD:
                 result = left % right
             case TokenType.CARET | TokenType.MULMUL:
-                result = left**right
+                result = left ** right
             case TokenType.LE:
                 result = left <= right
             case TokenType.LT:

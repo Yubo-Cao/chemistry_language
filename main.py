@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Literal
 
-from chemistry_lang import evaluate, interpreter
+from chemistry_lang import evaluate, interpreter, handler
 from chemistry_lang.ch_handler import logger
 from chemistry_lang.objs.ch_work import NativeWork
 
@@ -226,7 +226,7 @@ def gui():
         def redirect_output(self):
             env = interpreter.global_env.assign(
                 "print",
-                NativeWork(lambda x: self.print(interpreter.stringify(x) + "\n"), 1),
+                NativeWork(lambda x: [self.print(interpreter.stringify(x) + "\n"), x][1], 1),
             ).assign("clear", NativeWork(lambda: self.clear(), 0))
             interpreter.global_env = env
             interpreter.env = env
@@ -243,6 +243,7 @@ def gui():
                 result = evaluate(code)
             except Exception as e:
                 result = str(e)
+                handler.had_error = False
             self.result.setText(interpreter.stringify(result))
 
         def keyPressEvent(self, event: QKeyEvent):
