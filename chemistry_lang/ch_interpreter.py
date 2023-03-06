@@ -234,7 +234,7 @@ class Interpreter:
         unit = tmp.unit
         formula = tmp.formula
         return (
-            CHQuantity(formula, CHNumber(i), unit)
+            CHQuantity(formula, CHNumber(i, len(str(i))), unit)
             for i in range(int(start.magnitude), int(end.magnitude))
         )
 
