@@ -121,3 +121,31 @@ move(3, 'a', 'b', 'c')
 
     hanoi(3, "a", "b", "c")
     assert_stdout(expected)
+
+
+def test_fib():
+    reset()
+    src = """
+work fib(n)
+    exam n <= 1
+        submit 1
+    fail
+        res = fib(n-1) + fib(n-2)
+        submit fib(n - 1) + fib(n - 2)
+
+redo i of 1...10
+    print(s'fib({i}) = {fib(i)}')
+    """
+    evaluate(src)
+
+    expected = ""
+
+    def fib(n):
+        if n <= 1:
+            return 1
+        else:
+            return fib(n - 1) + fib(n - 2)
+
+    for i in range(1, 10):
+        expected += f"fib({i}) = {fib(i)}\n"
+    assert_stdout(expected)
