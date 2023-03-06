@@ -53,3 +53,34 @@ i()
     evaluate(src)
 
     assert_stdout("0\n1\n")
+
+
+def test_hanoi():
+    reset()
+    src = """
+work move(n, from, buf, to)
+    exam n == 1
+        print(s"Move {n} from {from} to {to}")
+    fail
+        move(n - 1, from, to, buf)
+        move(1, from, buf, to)
+        move(n - 1, buf, from, to)
+move(3, 'a', 'b', 'c')
+    """
+    evaluate(src)
+
+    expected = ""
+
+    def hanoi(n, a, b, c):
+        nonlocal expected
+
+        if n == 1:
+            expected += f"Move {n} from {a} to {c}"
+            expected += "\n"
+        else:
+            hanoi(n - 1, a, c, b)
+            hanoi(1, a, b, c)
+            hanoi(n - 1, b, a, c)
+
+    hanoi(3, "a", "b", "c")
+    assert_stdout(expected)
