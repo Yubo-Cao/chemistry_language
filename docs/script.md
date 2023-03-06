@@ -1,6 +1,6 @@
 I want to tell you about Chemistry Language, a language design to help chemistry instructors and students to solve chemistry problems.
 
-It works like other programming languages but takes significant digits into account. It automatically calculates and rounds the results to the correct number of significant digits.
+This language takes care of significant digits while supporting common operations in all languages. For example, it supports addition, subtraction, multiplication, division, modulo, and exponentiation. Exponentiation is also supported in both pascal and python style.
 
 ```ch
 print(1.2345 + 1.2)     ps: adding takes least decimal places
@@ -13,7 +13,7 @@ print(2.0 ^ 3 ** 3)     ps: supports pascal and python style exponentiation
 print(2.0 ** 3 ** 3 == 2.0 ** (3 ** 3))
 ```
 
-It also has a few built-in functions. Notice that significant digits is preserved throughout the operation, despite interpreter converts the number to double precision floating point in the background.
+It also has a few built-in functions. Notice that significant digits is preserved throughout the operation.
 
 ```ch
 print(log(100))         ps: log base 2 by default
@@ -32,7 +32,7 @@ print(10.000 km + 20.000 m)         ps: 10.020 km
 print(10.000 km + 20.000 m -> mm)   ps: 1.0020×10⁷ mm
 ```
 
-It also prevents you from making mistakes:
+It also prevents you from making mistakes. For example, adding kilometer to gram is not allowed, and neither as mixing two substances that's not the same:
 
 ```ch
 print(10.00 km + 20.00 g NaCl)      ps: error: can't convert gram to kilometer
