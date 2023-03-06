@@ -275,7 +275,7 @@ class FormulaUnit:
         return hash(self.formulas)
 
     def __eq__(self, other):
-        return self.formulas == other.formulas
+        return isinstance(other, FormulaUnit) and self.formulas == other.formulas
 
     @property
     def context(self):

@@ -266,7 +266,6 @@ class CHQuantity:
         reaction_context: dict[
             tuple[ForwardRef("FormulaUnit"), ForwardRef("FormulaUnit")], Decimal
         ] = None,
-        _retry=False,
     ) -> tuple["CHQuantity", "CHQuantity"]:
         """
         Make sure that the two quantities have the same unit and context.
@@ -274,20 +273,25 @@ class CHQuantity:
 
         from .ch_chemistry import FormulaUnit  # hack to avoid circular import
 
-        with suppress(DimensionalityError, CHError):
-            if a.unit == b.unit:  # same unit
-                return a, b
-            if (
-                b.unit is None
-                or b.unit.dimensionality == ureg.dimensionless.dimensionality
-            ):  # dimensionless automatic escalate
-                if (
-                    b.formula is None
-                    or b.formula == FormulaUnit.formulaless
-                    or b.formula == a.formula
-                ):
-                    return a, CHQuantity(a.formula, b.magnitude, a.unit)
-            return a, b.to(a.unit, reaction_context).to(a.formula, reaction_context)
-
-        if not _retry:
-            return CHQuantity.match_quantity(b, a, reaction_context, True)
+        # formula must match first
+        if a.formula != b.formula:
+            if b.formula is None or b.formula == FormulaUnit.formulaless:
+                b = CHQuantity(a.formula, b.magnitude, b.unit)
+            elif a.formula is None or a.formula == FormulaUnit.formulaless:
+                a = CHQuantity(b.formula, a.magnitude, a.unit)
+            elif reaction_context is None:
+                raise handler.error(
+                    f"Cannot convert {a.formula} to {b.formula} without context"
+                )
+            else:
+                b = b.to(a.formula, reaction_context)
+        # same unit
+        if a.unit == b.unit:
+            return a, b
+        # dimensionless automatic escalate
+        if b.unit is None or b.unit.dimensionality == ureg.dimensionless.dimensionality:
+            return a, CHQuantity(a.formula, b.magnitude, a.unit)
+        if a.unit is None or a.unit.dimensionality == ureg.dimensionless.dimensionality:
+            return CHQuantity(b.formula, a.magnitude, b.unit), b
+        # convert
+        return a, b.to(a.unit)
