@@ -187,7 +187,7 @@ class Parser:
         return start
 
     def assign(self):
-        left = self.or_expr()
+        left = self.conversion()
         sugar = {
             TokenType.ADDEQ: TokenType.ADD,
             TokenType.SUBEQ: TokenType.SUB,
@@ -206,6 +206,35 @@ class Parser:
             if op.type != TokenType.EQ:
                 rvalue = Binary(left, sugar[op.type], rvalue)
             left = Assign(left.name, rvalue)
+        return left
+
+    def conversion(self):
+        left = self.or_expr()
+        while True:
+            if self.match(TokenType.COLON):
+                reactions = self.reactions()
+                to = self.expect("Expect '->' after reaction.", TokenType.TO)
+                unit = self.expect(
+                    "Expect unit or formula after '->'",
+                    TokenType.FORMULA,
+                    TokenType.UNIT,
+                )
+                left = Conversion(left, to, unit.val, reactions)
+            elif (
+                self.peek.type == TokenType.TO and self.peek_next.type != TokenType.PATH
+            ):
+                while to := self.match(TokenType.TO):
+                    left = Conversion(
+                        left,
+                        to,
+                        self.expect(
+                            "Expect unit or formula after '->'",
+                            TokenType.FORMULA,
+                            TokenType.UNIT,
+                        ).val,
+                    )
+            else:
+                break
         return left
 
     def binary_parse(self, non_terminal, *operator):
@@ -250,37 +279,7 @@ class Parser:
         return Reaction(reactants, to, products)
 
     def factor(self):
-        left = self.unary()
-        while True:
-            if op := self.match(TokenType.MUL, TokenType.DIV, TokenType.MOD):
-                right = self.unary()
-                left = Binary(left, op.type, right)
-            elif self.match(TokenType.COLON):
-                reactions = self.reactions()
-                to = self.expect("Expect '->' after reaction.", TokenType.TO)
-                unit = self.expect(
-                    "Expect unit or formula after '->'",
-                    TokenType.FORMULA,
-                    TokenType.UNIT,
-                )
-                left = Conversion(left, to, unit.val, reactions)
-            elif (
-                self.peek.type == TokenType.TO and self.peek_next.type != TokenType.PATH
-            ):
-                while to := self.match(TokenType.TO):
-                    left = Conversion(
-                        left,
-                        to,
-                        self.expect(
-                            "Expect unit or formula after '->'",
-                            TokenType.FORMULA,
-                            TokenType.UNIT,
-                        ).val,
-                        [],
-                    )
-            else:
-                break
-        return left
+        return self.binary_parse(self.unary, TokenType.MUL, TokenType.DIV, TokenType.MOD)
 
     def unary(self):
         if op := self.match(TokenType.ADD, TokenType.SUB, TokenType.INV, TokenType.NOT):
