@@ -65,7 +65,7 @@ class Interpreter:
         def wrap_fn(func):
             def decorator(arg):
                 if isinstance(arg, CHQuantity):
-                    return CHQuantity(arg.formula, func(arg), arg.unit)
+                    return CHQuantity(arg.formula, CHNumber(func(arg), arg.magnitude.sig_fig), arg.unit)
                 elif isinstance(arg, CHNumber):
                     return CHNumber(func(arg), arg.sig_fig)
 

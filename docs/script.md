@@ -4,33 +4,33 @@ It works like other programming languages but takes significant digits into acco
 rounds the results to the correct number of significant digits.
 
 ```ch
-print(1.2345 + 1.2) ps: adding takes least decimal places
-print(2.0 * 3.24) ps: multiplying takes least sig figs
-print(2.0^3) ps: exponents are like repeated multiplication
+print(1.2345 + 1.2)     ps: adding takes least decimal places
+print(2.0 * 3.24)       ps: multiplying takes least sig figs
+print(2.0^3)            ps: exponents are like repeated multiplication
 ```
 
 It also has a few built-in functions:
 
 ```ch
-print(log(100)) ps: log base 2 by default
-print(log10(100)) ps: log base 10
+print(log(100))         ps: log base 2 by default
+print(log10(100))       ps: log base 10
 ```
 
 The most important feature of this langauge is that it can handle dimensional analysis. It also comes with automatic
 unit conversion.
 
 ```ch
-print(10 mol NaCl + 20 mol NaCl) ps: 3×10¹ mol NaCl
-print(10 kmol NaCl + 20 mol NaCl) ps: 1×10¹ kmol NaCl
-print(10.000 km + 20.000 m) ps: 10.020 km
-print(10.000 km + 20.000 m -> mm) ps: 1.0020×10⁷ mm
+print(10 mol NaCl + 20 mol NaCl)    ps: 3×10¹ mol NaCl
+print(10 kmol NaCl + 20 mol NaCl)   ps: 1×10¹ kmol NaCl
+print(10.000 km + 20.000 m)         ps: 10.020 km
+print(10.000 km + 20.000 m -> mm)   ps: 1.0020×10⁷ mm
 ```
 
 It also prevents you from making mistakes:
 
 ```ch
-print(10.00 km + 20.00 g NaCl) ps: error: can't convert gram to kilometer
-print(10.00 g H2O + 20.00 g NaCl) ps: error: cannot convert H₂O to NaCl
+print(10.00 km + 20.00 g NaCl)      ps: error: can't convert gram to kilometer
+print(10.00 g H2O + 20.00 g NaCl)   ps: error: cannot convert H₂O to NaCl
 ```
 
 However, it's also smart enough to know what you want to do. For example, it automatically
@@ -38,16 +38,16 @@ calculates the number of moles of water in a solution and guess the desired unit
 order of operands:
 
 ```ch
-print(10.00 g H2O + 1.00 mol H2O) ps: 28.01 g H₂O
-print(1.00 mol H2O + 10.00 g H2O + 1.00 mol H2O) ps: 2.56 mol H₂O
-print(1.00 mol H2O + 20.00 g H2O -> atom) ps: 1.27×10²⁴ atom H₂O
+print(10.00 g H2O + 1.00 mol H2O)                   ps: 28.01 g H₂O
+print(1.00 mol H2O + 10.00 g H2O + 1.00 mol H2O)    ps: 2.56 mol H₂O
+print(1.00 mol H2O + 20.00 g H2O -> atom)           ps: 1.27×10²⁴ atom H₂O
 ```
 
 Notice that significant digits is preserved throughout the operation. Finally, it automatically balances chemical equation for you:
 
 ```ch
-print(50.00 g NaOH :CuSO4 + NaOH -> Cu(OH)2 + Na2SO4:-> CuSO4 -> g) ps: 99.76 g CuSO₄
-print(16.00 mol C4H10 :C4H10 + O2 -> CO2 + H2O:-> CO2 -> g) ps: 2817 g CO₂
+print(50.00 g NaOH :CuSO4 + NaOH -> Cu(OH)2 + Na2SO4:-> CuSO4 -> g)     ps: 99.76 g CuSO₄
+print(16.00 mol C4H10 :C4H10 + O2 -> CO2 + H2O:-> CO2 -> g)             ps: 2817 g CO₂
 ```
 
 As this is a programming language with super-cow powers, it can also do other things.

@@ -69,7 +69,7 @@ work `count`(n)
     """
     evaluate(src)
 
-    expected = "1\n2\n3\n4\n5\n6\n7\n8\n9\n1e+1\n"
+    expected = "1\n2\n3\n4\n5\n6\n7\n8\n9\n1×10¹\n"
     assert_stdout(expected)
 
 
