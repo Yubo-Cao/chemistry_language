@@ -125,7 +125,7 @@ def gui():
         label.setStyleSheet(
             """
             font-family: Inter, "Segoe UI", sans-serif;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 600;
             color: #1e293b;
             """
@@ -211,11 +211,12 @@ def gui():
             repl.setStyleSheet(
                 """
                 font-family: Fira Code, "Segoe UI Mono", monospace;
-                font-size: 24px;
+                font-size: 32px;
                 background-color: #e2e8f0;
                 border: 1px solid #d1d5db;
                 border-radius: 4px;
                 padding: 8px;
+                font-weight: 800;
                 """
             )
             self.repl = repl

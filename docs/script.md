@@ -1,19 +1,25 @@
 I want to tell you about Chemistry Language, a language design to help chemistry instructors and students to solve chemistry problems.
 
-It works like other programming languages but takes significant digits into account. It automatically calculates and
-rounds the results to the correct number of significant digits.
+It works like other programming languages but takes significant digits into account. It automatically calculates and rounds the results to the correct number of significant digits.
 
 ```ch
 print(1.2345 + 1.2)     ps: adding takes least decimal places
+print(1.9 - 2.0)
 print(2.0 * 3.24)       ps: multiplying takes least sig figs
-print(2.0^3)            ps: exponents are like repeated multiplication
+print(2.0 / 3.0)
+print(2.0 % 3.0)
+print(2.0 ^ 3)          ps: exponents are like repeated multiplication
+print(2.0 ^ 3 ** 3)     ps: supports pascal and python style exponentiation
+print(2.0 ** 3 ** 3 == 2.0 ** (3 ** 3))
 ```
 
-It also has a few built-in functions:
+It also has a few built-in functions. Notice that significant digits is preserved throughout the operation, despite interpreter converts the number to double precision floating point in the background.
 
 ```ch
 print(log(100))         ps: log base 2 by default
 print(log10(100))       ps: log base 10
+print(sin(10))          ps: -0.5
+print(cos(10.0))        ps: -0.839
 ```
 
 The most important feature of this langauge is that it can handle dimensional analysis. It also comes with automatic
@@ -120,3 +126,5 @@ redo i of 1...10
         print(s'{i} x {j}
 ' -> |test.txt|)
 ```
+
+From the technical aspect, this language is implemented with Python with a hand-made recursive descent parser. It also integrates with `pytest` for testing.

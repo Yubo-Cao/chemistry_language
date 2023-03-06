@@ -160,7 +160,6 @@ class SignificantDigits:
         s = str(s)
         s = s.replace("_", "")  # remove underscores
         s = s.strip('-')  # handle negative numbers
-        print(s, type(s))
         if "e" in s or "E" in s:
             significant = re.split(r"[*×]?[eE]", s)
             return len(significant[0].replace(".", ""))
