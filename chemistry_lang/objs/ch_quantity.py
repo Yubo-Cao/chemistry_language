@@ -245,12 +245,16 @@ class CHQuantity:
                     f"Cannot convert {self.unit} to {target} without reaction context"
                 )
             if (
-                self.unit.dimensionality != ureg.molar.dimensionality
+                self.unit.dimensionality != ureg.mole.dimensionality
                 and self.unit.dimensionality != ureg.gram.dimensionality
             ):
                 self._raise(
-                    f"Cannot convert {self.unit} to {target} without molar context"
+                    f"Cannot convert {self.unit} to {target} without mole dimension"
                 )
+            if self.unit.dimensionality == ureg.gram.dimensionality:
+                magnitude = self.quantity.to(ureg.mole, self.ctx).magnitude
+                magnitude = CHNumber(magnitude, self.magnitude.sig_fig)
+                unit = ureg.mole
             try:
                 magnitude = magnitude * reaction_context[(self.formula, target)]
                 magnitude = CHNumber(magnitude, self.magnitude.sig_fig)
