@@ -328,7 +328,7 @@ class Parser:
                 elif self.match(TokenType.FORMULA):
                     unit = ureg.gram / ureg.mole
                     formula = FormulaUnit([self.previous.val])
-                return Literal(CHQuantity(formula, adv.val, unit))
+                return Literal(CHQuantity(formula, adv.val, unit, adv))
             case TokenType.PATH:
                 return Literal(adv.val)
             case TokenType.STR:

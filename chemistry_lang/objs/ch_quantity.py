@@ -1,11 +1,10 @@
-from contextlib import suppress
 from decimal import Decimal
 from typing import ForwardRef
 
 from pint import Unit, DimensionalityError, Quantity, Context
 
-from chemistry_lang.ch_error import CHError
 from chemistry_lang.ch_handler import handler
+from chemistry_lang.ch_token import Token
 from .ch_number import CHNumber
 from .ch_ureg import ureg
 
@@ -17,10 +16,11 @@ class CHQuantity:
     A quantity with a formula and a unit.
     """
 
-    def __init__(self, formula, magnitude: CHNumber, unit: Unit):
+    def __init__(self, formula, magnitude: CHNumber, unit: Unit, token: Token = None):
         self.formula = formula
         self.magnitude = CHNumber(magnitude)
         self.unit = unit
+        self.token = token
 
     @property
     def ctx(self):
@@ -57,13 +57,14 @@ class CHQuantity:
 
     def __add__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         result = a.quantity + b.quantity
 
         return CHQuantity(
             self.formula + other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
+            self.token
         )
 
     def __radd__(self, other: SupportedNumber):
@@ -71,57 +72,62 @@ class CHQuantity:
 
     def __sub__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         result = a.quantity - b.quantity
 
         return CHQuantity(
             self.formula - other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
+            self.token
         )
 
     def __rsub__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         result = b.quantity - a.quantity
 
         return CHQuantity(
             other.formula - self.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
+            self.token
         )
 
     def __truediv__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         result = a.quantity / b.quantity
 
         return CHQuantity(
             self.formula / other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
+            self.token
         )
 
     def __rtruediv__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         result = b.quantity / a.quantity
 
         return CHQuantity(
             other.formula / self.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
+            self.token
         )
 
     def __mul__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         result = a.quantity * b.quantity
 
         return CHQuantity(
             self.formula * other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
+            self.token
         )
 
     def __rmul__(self, other: SupportedNumber):
@@ -129,51 +135,52 @@ class CHQuantity:
 
     def __mod__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         result = a.quantity % b.quantity
 
         return CHQuantity(
             self.formula - other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
+            self.token
         )
 
     def __eq__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         return a.quantity == b.quantity
 
     def __ne__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         return a.quantity != b.quantity
 
     def __lt__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         return a.quantity < b.quantity
 
     def __le__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         return a.quantity <= b.quantity
 
     def __gt__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         return a.quantity > b.quantity
 
     def __ge__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
-        a, b = CHQuantity.match_quantity(self, other)
+        a, b = self.match_quantity(self, other)
         return a.quantity >= b.quantity
 
     def __pow__(self, other: SupportedNumber):
         other = self.ensure_quantity(other)
         if not other.unit == ureg.dimensionless:
-            raise handler.error(f"Cannot raise to power {other.unit}")
+            self._raise(f"Cannot raise to power {other.unit}")
         if (int(other.magnitude) - other.magnitude) >= 0.0001:  # ε
-            raise handler.error(f"Cannot raise to power {other.magnitude}")
+            self._raise(f"Cannot raise to power {other.magnitude}")
         result = 1
         for _ in range(int(other.magnitude)):
             result *= self
@@ -192,17 +199,20 @@ class CHQuantity:
         return CHQuantity(self.formula, abs(self.magnitude), self.unit)
 
     def __invert__(self):
-        raise handler.error("Bad operand type for unary ~: 'CHQuantity'")
+        self._raise("Bad operand type for unary ~: 'CHQuantity'")
 
     def __int__(self):
         if self.unit != ureg.dimensionless:
-            raise handler.error(f"Cannot convert {self.unit} to int")
+            self._raise(f"Cannot convert {self.unit} to int")
         return int(self.magnitude)
 
     def __float__(self):
         if self.unit != ureg.dimensionless:
-            raise handler.error(f"Cannot convert {self.unit} to float")
+            self._raise(f"Cannot convert {self.unit} to float")
         return float(self.magnitude)
+
+    def _raise(self, message):
+        raise handler.error(message, self.token)
 
     def to(
         self,
@@ -225,30 +235,29 @@ class CHQuantity:
                 magnitude = self.quantity.to(target, self.ctx).magnitude
                 unit = target
             except DimensionalityError:
-                raise handler.error(f"Cannot convert {self.unit} to {target}")
+                self._raise(f"Cannot convert {self.unit} to {target}")
         # formula unit
         formula = self.formula
         if isinstance(target, FormulaUnit) and self.formula != target:
             if not reaction_context:
-                raise handler.error(
+                self._raise(
                     f"Cannot convert {self.unit} to {target} without reaction context"
                 )
             if (
                 self.unit.dimensionality != ureg.molar.dimensionality
                 and self.unit.dimensionality != ureg.gram.dimensionality
             ):
-                raise handler.error(
+                self._raise(
                     f"Cannot convert {self.unit} to {target} without molar context"
                 )
             try:
                 magnitude = magnitude * reaction_context[(self.formula, target)]
             except KeyError:
-                raise handler.error(f"Cannot convert {self.unit} to {target}")
+                self._raise(f"Cannot convert {self.unit} to {target}")
             formula = target
         return CHQuantity(formula, magnitude, unit)
 
-    @staticmethod
-    def ensure_quantity(other: SupportedNumber) -> "CHQuantity":
+    def ensure_quantity(self, other: SupportedNumber) -> "CHQuantity":
         if isinstance(other, CHQuantity):
             return other
         elif isinstance(other, (int, float, Decimal)):
@@ -256,11 +265,11 @@ class CHQuantity:
         elif isinstance(other, CHNumber):
             other = CHQuantity(None, other, ureg.dimensionless)
         else:
-            raise handler.error(f"Cannot convert {other} to CHQuantity")
+            self._raise(f"Cannot convert {other} to CHQuantity")
         return other
 
-    @staticmethod
     def match_quantity(
+        self,
         a: "CHQuantity",
         b: "CHQuantity",
         reaction_context: dict[
@@ -280,7 +289,7 @@ class CHQuantity:
             elif a.formula is None or a.formula == FormulaUnit.formulaless:
                 a = CHQuantity(b.formula, a.magnitude, a.unit)
             elif reaction_context is None:
-                raise handler.error(
+                self._raise(
                     f"Cannot convert {a.formula} to {b.formula} without context"
                 )
             else:
