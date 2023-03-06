@@ -11,7 +11,12 @@ def test_add():
 
 
 def test_format_string():
-    assert evaluate("""
+    assert (
+        evaluate(
+            """
 n = 10
 s'You have {n} apples'
-    """) == "You have 1e+1 apples"
+    """
+        )
+        == "You have 1e+1 apples"
+    )

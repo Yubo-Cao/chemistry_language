@@ -38,8 +38,8 @@ def test_mul():
     b = CHQuantity(water, CHNumber(1), ureg.mol)
     c = a * b
     assert c.magnitude == CHNumber(2)
-    assert c.unit == ureg.mol ** 2
-    assert c.formula == water ** 2
+    assert c.unit == ureg.mol**2
+    assert c.formula == water**2
 
 
 def test_div():
