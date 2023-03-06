@@ -233,6 +233,7 @@ class CHQuantity:
         if isinstance(target, Unit) and self.unit != target:
             try:
                 magnitude = self.quantity.to(target, self.ctx).magnitude
+                magnitude = CHNumber(magnitude, self.magnitude.sig_fig)
                 unit = target
             except DimensionalityError:
                 self._raise(f"Cannot convert {self.unit} to {target}")
@@ -252,6 +253,7 @@ class CHQuantity:
                 )
             try:
                 magnitude = magnitude * reaction_context[(self.formula, target)]
+                magnitude = CHNumber(magnitude, self.magnitude.sig_fig)
             except KeyError:
                 self._raise(f"Cannot convert {self.unit} to {target}")
             formula = target
