@@ -4,6 +4,43 @@ from chemistry_lang import evaluate
 initialize()
 
 
+def test_define_work():
+    reset()
+    src = """
+work test()
+    exam pass
+        "You passed the exam"
+    fail
+        "You failed the exam"
+
+print(test())
+    """
+    evaluate(src)
+
+    assert_stdout("You passed the exam\n")
+
+
+def test_submit():
+    reset()
+    src = """
+work test()
+    redo x of 1...10
+        exam x % 2 == 0
+            print(x)
+    submit na
+
+print(test())
+    """
+    evaluate(src)
+
+    expected = ""
+    for i in range(1, 10):
+        if i % 2 == 0:
+            expected += str(i) + "\n"
+    expected += "na\n"
+    assert_stdout(expected)
+
+
 def test_recursive_sum():
     reset()
     src = """
