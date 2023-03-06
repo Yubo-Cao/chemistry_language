@@ -125,7 +125,7 @@ def gui():
         label.setStyleSheet(
             """
             font-family: Inter, "Segoe UI", sans-serif;
-            font-size: 16px;
+            font-size: 28px;
             font-weight: 600;
             color: #1e293b;
             """
@@ -146,7 +146,7 @@ def gui():
                 """
                 border: 1px solid #d1d5db;
                 border-radius: 4px;
-                font-size: 14px;
+                font-size: 24px;
                 font-family: Fira Code, "Segoe UI Mono", monospace;
                 padding: 8px;
                 """
@@ -197,6 +197,10 @@ def gui():
                     result := Stream(),
                 ),
                 spacing=8,
+                as_layout=False,
+                stylesheet="""
+                max-width: 320px;
+                """
             )
             left = column(
                 title("Input"),
@@ -207,7 +211,7 @@ def gui():
             repl.setStyleSheet(
                 """
                 font-family: Fira Code, "Segoe UI Mono", monospace;
-                font-size: 14px;
+                font-size: 24px;
                 background-color: #e2e8f0;
                 border: 1px solid #d1d5db;
                 border-radius: 4px;
