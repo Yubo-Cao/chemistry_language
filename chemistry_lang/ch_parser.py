@@ -21,8 +21,8 @@ from .ch_ast import (
 )
 from .ch_error import CHError
 from .ch_handler import handler
-from .objs import FormulaUnit, Reaction, CHQuantity, CHString, ureg
 from .ch_token import Token, TokenType
+from .objs import FormulaUnit, Reaction, CHQuantity, CHString, ureg
 
 
 class Parser:

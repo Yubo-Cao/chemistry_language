@@ -36,7 +36,7 @@ from .objs import (
     CHWork,
     SubmitError,
     NativeWork,
-    CHNumber
+    CHNumber,
 )
 
 
@@ -309,7 +309,7 @@ class Interpreter:
             case TokenType.MOD:
                 result = left % right
             case TokenType.CARET | TokenType.MULMUL:
-                result = left ** right
+                result = left**right
             case TokenType.LE:
                 result = left <= right
             case TokenType.LT:

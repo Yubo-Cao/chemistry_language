@@ -20,14 +20,11 @@ logger.setLevel(DEBUG)
 
 
 class CHErrorHandler:
-    had_error = False
-
     def __init__(self):
         self.had_error = False
 
     def error(self, msg: str, token: Optional[Token | int] = None):
         """Report an error"""
-
         match token:
             case Token():
                 msg = f"{token.line}: {msg}"

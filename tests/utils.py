@@ -10,8 +10,11 @@ def initialize():
         stdout += interpreter.stringify(x)
         stdout += "\n"
 
-    interpreter.global_env = interpreter.global_env.assign("print", NativeWork(_fake_print, 1))
+    interpreter.global_env = interpreter.global_env.assign(
+        "print", NativeWork(_fake_print, 1)
+    )
     interpreter.env = interpreter.global_env
+
 
 def reset():
     global stdout

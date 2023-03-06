@@ -6,16 +6,16 @@ from itertools import chain, permutations
 from math import lcm
 from typing import Any, Iterable
 
-from pint import Context
+from pint import Context, Quantity
 from sympy import Integer, symbols, solve_linear_system, Matrix, fraction
 
+from chemistry_lang.ch_error import CHError
 from chemistry_lang.ch_handler import handler
 from chemistry_lang.ch_periodic_table import periodic_table
 from chemistry_lang.ch_token import Token
-from chemistry_lang.objs.ch_ureg import ureg
-from chemistry_lang.ch_error import CHError
-from .ch_quantity import CHQuantity
+from .ch_ureg import ureg
 from .ch_number import CHNumber
+from .ch_quantity import CHQuantity
 
 
 class EvalDecimal:
@@ -37,6 +37,8 @@ class EvalDecimal:
         return self.__check_type(prop)
 
     def __set__(self, instance, value):
+        if isinstance(value, CHNumber):
+            value = value.value
         if not isinstance(value, str) and not isinstance(value, Decimal | int | float):
             raise handler.error(
                 "Invalid type %s for property %s"
@@ -51,7 +53,6 @@ class EvalDecimal:
         try:
             if isinstance(value, CHNumber):
                 value = value.value
-            print(type(value))
             return Decimal(value)
         except (CHError, InvalidOperation) as e:
             raise handler.error("Invalid type for property %s" % self.name)
@@ -70,10 +71,7 @@ class Element:
         self.number = number
 
     def __eq__(self, other):
-        return (
-            self.symbol == other.symbol
-            and self.number == other.number
-        )
+        return self.symbol == other.symbol and self.number == other.number
 
     def __hash__(self):
         return hash((self.symbol, self.number))
@@ -147,10 +145,14 @@ class CHFormula:
         """
         c = Context()
         c.add_transformation(
-            "[mass]", "[substance]", lambda reg, x: x / self.molecular_mass.quantity
+            "[mass]",
+            "[substance]",
+            lambda reg, x: x / self.molecular_mass.quantity,
         )
         c.add_transformation(
-            "[substance]", "[mass]", lambda reg, x: x * self.molecular_mass.quantity
+            "[substance]",
+            "[mass]",
+            lambda reg, x: x * self.molecular_mass.quantity,
         )
         return c
 
@@ -162,7 +164,8 @@ class CHFormula:
 
     def __eq__(self, other):
         return (
-            self.terms == other.terms
+            isinstance(other, CHFormula)
+            and self.terms == other.terms
             and self.number == other.number
             and self.charge == other.charge
         )
@@ -205,6 +208,8 @@ class FormulaUnit:
     This class represents a formula unit in the chemistry language.
     """
 
+    formulaless: "FormulaUnit" = None
+
     def __init__(self, formula: Iterable[CHFormula]):
         self.formulas = tuple(formula)
 
@@ -243,7 +248,9 @@ class FormulaUnit:
 
     def __pow__(self, other):
         if isinstance(other, int):
-            return FormulaUnit(*itertools.chain([self.formulas] * other))
+            return FormulaUnit(
+                [*itertools.chain(*(self.formulas for _ in range(other)))]
+            )
         elif isinstance(other, FormulaUnit) and other.formulas == ():
             return FormulaUnit([])
         else:
@@ -275,7 +282,7 @@ class FormulaUnit:
         if len(self.formulas) == 1:
             return self.formulas[0].context
         else:
-            raise handler.error("Can not get context of {}".format(self))
+            raise ValueError("Can not get context of {}".format(self))
 
 
 @dataclass
@@ -332,21 +339,25 @@ class Reaction:
             [
                 CHFormula(product.terms, Decimal(str(number)))
                 for product, number in zip(
-                self.products, simplified_result[len(self.reactants):]
-            )
+                    self.products, simplified_result[len(self.reactants) :]
+                )
             ],
         )
         return result
 
     @cached_property
-    def context(self) -> dict[tuple[FormulaUnit, FormulaUnit], Decimal]:
+    def context(self) -> dict[tuple[FormulaUnit, FormulaUnit], Quantity]:
         return {
             (
                 FormulaUnit([CHFormula(numerator.terms)]),
                 FormulaUnit([CHFormula(denominator.terms)]),
-            ): CHNumber(Decimal(denominator.number)
-                        / Decimal(numerator.number), 999)  # molar ratio has infinite significant digits
+            ): CHNumber(
+                Decimal(denominator.number) / Decimal(numerator.number), 999
+            )  # molar ratio has infinite significant digits
             for numerator, denominator in permutations(
                 self.reactants + self.products, 2
             )
         }
+
+
+FormulaUnit.formulaless = FormulaUnit([])

@@ -38,18 +38,18 @@ class Tokenizer:
         self.tokens: list[Token] = []
 
     def error(self, message: str):
-        handler.error(message, self.line)
+        return handler.error(message, self.line)
 
     def expect(self, message: str, predicate: Callable[[], Any] | str):
         if callable(predicate):
             result = predicate()
             if not result:
-                return handler.error(message, self.line)
+                return self.error(message)
             return result
         else:
             if self.match(predicate):
                 return True
-            return handler.error(message, self.line)
+            return self.error(message)
 
     @cached_property
     def chem_start_letter(self):
@@ -446,9 +446,7 @@ class Tokenizer:
         self.proceed()
         subscript = self.script(default=CHNumber("1"))
         self.proceed()
-        superscript = self.script("^", default=CHNumber("0"))
-        self.proceed()
-        return Element(name, subscript, superscript)
+        return Element(name, subscript)
 
     def formula(self) -> Optional[CHFormula]:
         """
