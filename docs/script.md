@@ -1,4 +1,4 @@
-I want to tell you about Chemistry Language, which helps you solve chemistry problems.
+I want to tell you about Chemistry Language, a language design to help chemistry instructors and students to solve chemistry problems.
 
 It works like other programming languages but takes significant digits into account. It automatically calculates and
 rounds the results to the correct number of significant digits.
