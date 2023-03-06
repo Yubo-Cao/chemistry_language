@@ -18,6 +18,16 @@ from .ch_number import CHNumber
 from .ch_quantity import CHQuantity
 
 
+def sup(s):
+    s = str(s)
+    return s.translate(str.maketrans("0123456789.eE+-", "⁰¹²³⁴⁵⁶⁷⁸⁹.ᵉᴱ⁺⁻"))
+
+
+def sub(s):
+    s = str(s)
+    return s.translate(str.maketrans("0123456789.eE+-", "₀₁₂₃₄₅₆₇₈₉.ₑₑ₊₋"))
+
+
 class EvalDecimal:
     """
     This class create a descriptor that evaluates a string to a Decimal
@@ -77,8 +87,8 @@ class Element:
         return hash((self.symbol, self.number))
 
     def __str__(self):
-        sub = "_{%s}" % self.number if self.number != 1 else ""
-        return f"{self.symbol}{sub}"
+        s = "%s" % sub(self.number) if self.number != 1 else ""
+        return f"{self.symbol}{s}"
 
     def __getattr__(self, key: str):
         try:
@@ -106,7 +116,7 @@ class CHFormula:
         return (
             (str(self.number) if self.number != 1 else "")
             + "".join(map(str, self.terms))
-            + ("^{%d}" % self.charge if self.charge else "")
+            + (sup(self.charge) if self.charge else "")
         )
 
     @cached_property
@@ -187,8 +197,8 @@ class CHPartialFormula(CHFormula):
     def __str__(self):
         return (
             ("(%s)" if self.number != 0 else "%s") % "".join(str(e) for e in self.terms)
-            + ("_{%s}" % self.number if self.number != 1 else "")
-            + ("^{%s}" % self.charge if self.charge else "")
+            + (sub(self.number) if self.number != 1 else "")
+            + (sup(self.charge) if self.charge else "")
         )
 
     def __hash__(self) -> int:

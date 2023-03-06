@@ -279,7 +279,9 @@ class Parser:
         return Reaction(reactants, to, products)
 
     def factor(self):
-        return self.binary_parse(self.unary, TokenType.MUL, TokenType.DIV, TokenType.MOD)
+        return self.binary_parse(
+            self.unary, TokenType.MUL, TokenType.DIV, TokenType.MOD
+        )
 
     def unary(self):
         if op := self.match(TokenType.ADD, TokenType.SUB, TokenType.INV, TokenType.NOT):

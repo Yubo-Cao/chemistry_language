@@ -39,12 +39,7 @@ class CHQuantity:
         return f"CHQuantity(formula={self.formula!r}, magnitude={self.magnitude!r}, unit={self.unit!r})"
 
     def __str__(self):
-        result = [str(self.magnitude)]
-        if self.formula:
-            result.append(str(self.formula))
-        if self.unit and self.unit != ureg.dimensionless:
-            result.append(str(self.unit))
-        return " ".join(result)
+        return f"{self.quantity:~P}" + (f" {self.formula}" if self.formula else "")
 
     def __format__(self, _format_spec: str) -> str:
         return f"{{magnitude}}{{unit}}{{formula}}".format(
@@ -64,7 +59,7 @@ class CHQuantity:
             self.formula + other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
-            self.token
+            self.token,
         )
 
     def __radd__(self, other: SupportedNumber):
@@ -79,7 +74,7 @@ class CHQuantity:
             self.formula - other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
-            self.token
+            self.token,
         )
 
     def __rsub__(self, other: SupportedNumber):
@@ -91,7 +86,7 @@ class CHQuantity:
             other.formula - self.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
-            self.token
+            self.token,
         )
 
     def __truediv__(self, other: SupportedNumber):
@@ -103,7 +98,7 @@ class CHQuantity:
             self.formula / other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
-            self.token
+            self.token,
         )
 
     def __rtruediv__(self, other: SupportedNumber):
@@ -115,7 +110,7 @@ class CHQuantity:
             other.formula / self.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
-            self.token
+            self.token,
         )
 
     def __mul__(self, other: SupportedNumber):
@@ -127,7 +122,7 @@ class CHQuantity:
             self.formula * other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
-            self.token
+            self.token,
         )
 
     def __rmul__(self, other: SupportedNumber):
@@ -142,7 +137,7 @@ class CHQuantity:
             self.formula - other.formula if other.formula else self.formula,
             CHNumber(result.magnitude),
             result.units,
-            self.token
+            self.token,
         )
 
     def __eq__(self, other: SupportedNumber):
