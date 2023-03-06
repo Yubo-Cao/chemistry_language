@@ -141,6 +141,10 @@ class Interpreter:
         Evaluate an expression.
         """
 
+        # comments
+        if node is None:
+            return None
+
         raise NotImplementedError(node)
 
     @evaluate.register(Write)
@@ -309,7 +313,7 @@ class Interpreter:
             case TokenType.MOD:
                 result = left % right
             case TokenType.CARET | TokenType.MULMUL:
-                result = left**right
+                result = left ** right
             case TokenType.LE:
                 result = left <= right
             case TokenType.LT:
