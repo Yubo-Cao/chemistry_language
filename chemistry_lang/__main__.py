@@ -5,10 +5,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Literal
 
-from chemistry_lang import evaluate, interpreter, handler
-from chemistry_lang.ch_handler import logger
-from chemistry_lang.objs.ch_work import NativeWork
-
 
 def parse():
     parser = ArgumentParser()
@@ -35,6 +31,9 @@ def run(file: str | Path):
     if not file.exists():
         print(f"File {file} does not exist")
         exit(1)
+
+    from chemistry_lang import evaluate
+
     with open(file) as f:
         evaluate(f.read())
 
@@ -54,6 +53,8 @@ def repl():
                 lines.append(line)
         except (KeyboardInterrupt, EOFError):
             exit(0)
+        from chemistry_lang import evaluate
+
         result = evaluate("\n".join(lines))
         print(result)
 
@@ -229,6 +230,10 @@ def gui():
             self.result.clear()
 
         def redirect_output(self):
+            from chemistry_lang import interpreter
+            from chemistry_lang.ch_handler import logger
+            from chemistry_lang.objs import NativeWork
+
             env = interpreter.global_env.assign(
                 "print",
                 NativeWork(lambda x: [self.print(interpreter.stringify(x) + "\n"), x][1], 1),
@@ -242,6 +247,8 @@ def gui():
             self.output.write(*args, **kwargs)
 
         def eval(self):
+            from chemistry_lang import interpreter, evaluate, handler
+
             code = self.repl.toPlainText()
             result: Any
             try:
@@ -252,6 +259,8 @@ def gui():
             self.result.setText(interpreter.stringify(result))
 
         def keyPressEvent(self, event: QKeyEvent):
+            from chemistry_lang import interpreter
+
             if event.key() == Qt.Key_Return and event.modifiers() == Qt.ControlModifier:
                 self.eval()
             if event.key() == Qt.Key_L and event.modifiers() == Qt.ControlModifier:
